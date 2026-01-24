@@ -1,0 +1,13 @@
+# Docker Compose override file for Redis support
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.redis.yml up -d
+
+services:
+  app:
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  redis:
+    profiles: []  # Remove profile to make it active by default

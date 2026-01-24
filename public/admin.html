@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>域名配置管理</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 40px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .login-container h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #667eea;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 100%;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .search-box {
+            flex: 1;
+            max-width: 400px;
+            margin-right: 20px;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            margin-bottom: 20px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+            position: sticky;
+            top: 0;
+        }
+        
+        tr:hover {
+            background: #f9fafb;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-header h2 {
+            color: #667eea;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #6b7280;
+        }
+        
+        .close-btn:hover {
+            color: #374151;
+        }
+        
+        .alert {
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .alert.show {
+            display: block;
+        }
+        
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+        
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+        
+        .json-editor {
+            background: #f9fafb;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        
+        .permission-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .permission-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .permission-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .logout-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid white;
+        }
+        
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .pagination button {
+            padding: 8px 16px;
+            border: 1px solid #e0e0e0;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        
+        .pagination button:hover:not(:disabled) {
+            background: #f9fafb;
+        }
+        
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .pagination button.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <!-- 登录界面 -->
+    <div id="loginContainer" class="login-container">
+        <h2>🔐 管理员登录</h2>
+        <div id="loginAlert" class="alert alert-error"></div>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="password">管理密码</label>
+                <input type="password" id="password" placeholder="请输入管理密码" required>
+            </div>
+            <button type="submit" class="btn btn-primary">登录</button>
+        </form>
+    </div>
+
+    <!-- 主界面 -->
+    <div id="mainContainer" class="container hidden">
+        <div class="header">
+            <button class="btn btn-secondary btn-small logout-btn" onclick="logout()">退出登录</button>
+            <h1>🌐 域名配置管理系统</h1>
+            <p>Domain Configuration Management System</p>
+        </div>
+        
+        <div class="content">
+            <div id="alert" class="alert"></div>
+            
+            <div class="toolbar">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="🔍 搜索域名..." onkeyup="searchDomains()">
+                </div>
+                <button class="btn btn-success" onclick="showCreateModal()">➕ 添加域名</button>
+            </div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>域名</th>
+                            <th>标题</th>
+                            <th>作者</th>
+                            <th>描述</th>
+                            <th>权限</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="domainTableBody">
+                        <tr>
+                            <td colspan="7" style="text-align: center; padding: 40px;">
+                                加载中...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="pagination" id="pagination"></div>
+        </div>
+    </div>
+
+    <!-- 创建/编辑模态框 -->
+    <div id="domainModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">添加域名</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            
+            <form id="domainForm">
+                <input type="hidden" id="domainId">
+                
+                <div class="form-group">
+                    <label for="domain">域名 *</label>
+                    <input type="text" id="domain" placeholder="example.com" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="title">标题</label>
+                    <input type="text" id="title" placeholder="网站标题">
+                </div>
+                
+                <div class="form-group">
+                    <label for="author">作者</label>
+                    <input type="text" id="author" placeholder="作者名称">
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">描述</label>
+                    <input type="text" id="description" placeholder="网站描述">
+                </div>
+                
+                <div class="form-group">
+                    <label for="keywords">关键词</label>
+                    <input type="text" id="keywords" placeholder="关键词1, 关键词2">
+                </div>
+                
+                <div class="form-group">
+                    <label>权限配置</label>
+                    <div class="permission-grid">
+                        <div class="permission-item">
+                            <input type="checkbox" id="permRead">
+                            <label for="permRead">读取权限</label>
+                        </div>
+                        <div class="permission-item">
+                            <input type="checkbox" id="permWrite">
+                            <label for="permWrite">写入权限</label>
+                        </div>
+                        <div class="permission-item">
+                            <input type="checkbox" id="permAdmin">
+                            <label for="permAdmin">管理员权限</label>
+                        </div>
+                        <div class="permission-item">
+                            <input type="checkbox" id="permComments">
+                            <label for="permComments">评论功能</label>
+                        </div>
+                        <div class="permission-item">
+                            <input type="checkbox" id="permUpload">
+                            <label for="permUpload">上传功能</label>
+                        </div>
+                        <div class="permission-item">
+                            <input type="checkbox" id="permApiAccess">
+                            <label for="permApiAccess">API访问</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="links">链接配置 (JSON)</label>
+                    <textarea id="links" class="json-editor" placeholder='{"home": "https://example.com"}'></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="permissionsJson">高级权限配置 (JSON)</label>
+                    <textarea id="permissionsJson" class="json-editor" placeholder='{"roles": ["viewer"], "restrictions": {}}'></textarea>
+                </div>
+                
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">保存</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api/v1';
+        let currentPage = 1;
+        let pageSize = 10;
+        let totalPages = 1;
+        let allDomains = [];
+        let authToken = '';
+
+        // 登录处理
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    authToken = data.token || password;
+                    localStorage.setItem('adminToken', authToken);
+                    showMainContainer();
+                    loadDomains();
+                } else {
+                    showLoginError('密码错误');
+                }
+            } catch (error) {
+                // 简单验证模式
+                authToken = password;
+                localStorage.setItem('adminToken', authToken);
+                showMainContainer();
+                loadDomains();
+            }
+        });
+        
+        function showLoginError(message) {
+            const alert = document.getElementById('loginAlert');
+            alert.textContent = message;
+            alert.classList.add('show');
+            setTimeout(() => alert.classList.remove('show'), 3000);
+        }
+
+        function showMainContainer() {
+            document.getElementById('loginContainer').classList.add('hidden');
+            document.getElementById('mainContainer').classList.remove('hidden');
+        }
+        
+        function logout() {
+            localStorage.removeItem('adminToken');
+            authToken = '';
+            document.getElementById('loginContainer').classList.remove('hidden');
+            document.getElementById('mainContainer').classList.add('hidden');
+            document.getElementById('password').value = '';
+        }
+        
+        // 检查登录状态
+        window.addEventListener('load', () => {
+            const token = localStorage.getItem('adminToken');
+            if (token) {
+                authToken = token;
+                showMainContainer();
+                loadDomains();
+            }
+        });
+        
+        // 加载域名列表
+        async function loadDomains() {
+            try {
+                const response = await fetch(`${API_BASE}/domains?page=${currentPage}&pageSize=${pageSize}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                if (!response.ok) throw new Error('加载失败');
+                
+                const data = await response.json();
+                allDomains = data.data || [];
+                totalPages = data.pagination?.totalPages || 1;
+                
+                renderTable(allDomains);
+                renderPagination();
+            } catch (error) {
+                showAlert('加载域名列表失败: ' + error.message, 'error');
+            }
+        }
+
+        // 渲染表格
+        function renderTable(domains) {
+            const tbody = document.getElementById('domainTableBody');
+            
+            if (domains.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px;">暂无数据</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = domains.map(domain => `
+                <tr>
+                    <td>${domain.id}</td>
+                    <td><strong>${domain.domain}</strong></td>
+                    <td>${domain.title || '-'}</td>
+                    <td>${domain.author || '-'}</td>
+                    <td>${domain.description || '-'}</td>
+                    <td>${formatPermissions(domain.permissions)}</td>
+                    <td class="actions">
+                        <button class="btn btn-primary btn-small" onclick="editDomain(${domain.id})">编辑</button>
+                        <button class="btn btn-danger btn-small" onclick="deleteDomain(${domain.id}, '${domain.domain}')">删除</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        function formatPermissions(permissions) {
+            if (!permissions) return '-';
+            const perms = [];
+            if (permissions.read) perms.push('读');
+            if (permissions.write) perms.push('写');
+            if (permissions.admin) perms.push('管理');
+            return perms.length > 0 ? perms.join(', ') : '-';
+        }
+
+        // 渲染分页
+        function renderPagination() {
+            const pagination = document.getElementById('pagination');
+            let html = '';
+            
+            html += `<button onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>上一页</button>`;
+            
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+                    html += `<button class="${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+                } else if (i === currentPage - 3 || i === currentPage + 3) {
+                    html += '<button disabled>...</button>';
+                }
+            }
+            
+            html += `<button onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>下一页</button>`;
+            
+            pagination.innerHTML = html;
+        }
+        
+        function changePage(page) {
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            loadDomains();
+        }
+        
+        // 搜索功能
+        function searchDomains() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allDomains.filter(d => 
+                d.domain.toLowerCase().includes(searchTerm) ||
+                (d.title && d.title.toLowerCase().includes(searchTerm))
+            );
+            renderTable(filtered);
+        }
+
+        // 显示创建模态框
+        function showCreateModal() {
+            document.getElementById('modalTitle').textContent = '添加域名';
+            document.getElementById('domainForm').reset();
+            document.getElementById('domainId').value = '';
+            document.getElementById('domain').disabled = false;
+            document.getElementById('domainModal').classList.add('active');
+        }
+        
+        // 编辑域名
+        async function editDomain(id) {
+            try {
+                const response = await fetch(`${API_BASE}/domains/id/${id}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                if (!response.ok) throw new Error('加载失败');
+                
+                const result = await response.json();
+                const domain = result.data;
+                
+                document.getElementById('modalTitle').textContent = '编辑域名';
+                document.getElementById('domainId').value = domain.id;
+                document.getElementById('domain').value = domain.domain;
+                document.getElementById('domain').disabled = true;
+                document.getElementById('title').value = domain.title || '';
+                document.getElementById('author').value = domain.author || '';
+                document.getElementById('description').value = domain.description || '';
+                document.getElementById('keywords').value = domain.keywords || '';
+                document.getElementById('links').value = domain.links ? JSON.stringify(domain.links, null, 2) : '';
+                
+                // 设置权限
+                const perms = domain.permissions || {};
+                document.getElementById('permRead').checked = perms.read || false;
+                document.getElementById('permWrite').checked = perms.write || false;
+                document.getElementById('permAdmin').checked = perms.admin || false;
+                document.getElementById('permComments').checked = perms.features?.comments || false;
+                document.getElementById('permUpload').checked = perms.features?.upload || false;
+                document.getElementById('permApiAccess').checked = perms.features?.api_access || false;
+                
+                // 高级权限配置
+                const advancedPerms = { ...perms };
+                delete advancedPerms.read;
+                delete advancedPerms.write;
+                delete advancedPerms.admin;
+                delete advancedPerms.features;
+                document.getElementById('permissionsJson').value = Object.keys(advancedPerms).length > 0 
+                    ? JSON.stringify(advancedPerms, null, 2) : '';
+                
+                document.getElementById('domainModal').classList.add('active');
+            } catch (error) {
+                showAlert('加载域名信息失败: ' + error.message, 'error');
+            }
+        }
+
+        // 删除域名
+        async function deleteDomain(id, domain) {
+            if (!confirm(`确定要删除域名 "${domain}" 吗？此操作不可恢复！`)) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/domains/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                if (!response.ok) throw new Error('删除失败');
+                
+                showAlert('删除成功', 'success');
+                loadDomains();
+            } catch (error) {
+                showAlert('删除失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 关闭模态框
+        function closeModal() {
+            document.getElementById('domainModal').classList.remove('active');
+        }
+        
+        // 表单提交
+        document.getElementById('domainForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const id = document.getElementById('domainId').value;
+            const formData = {
+                domain: document.getElementById('domain').value,
+                title: document.getElementById('title').value || null,
+                author: document.getElementById('author').value || null,
+                description: document.getElementById('description').value || null,
+                keywords: document.getElementById('keywords').value || null,
+            };
+
+            // 解析 links
+            try {
+                const linksText = document.getElementById('links').value.trim();
+                formData.links = linksText ? JSON.parse(linksText) : null;
+            } catch (error) {
+                showAlert('链接配置 JSON 格式错误', 'error');
+                return;
+            }
+            
+            // 构建权限配置
+            const permissions = {
+                read: document.getElementById('permRead').checked,
+                write: document.getElementById('permWrite').checked,
+                admin: document.getElementById('permAdmin').checked,
+                features: {
+                    comments: document.getElementById('permComments').checked,
+                    upload: document.getElementById('permUpload').checked,
+                    api_access: document.getElementById('permApiAccess').checked,
+                }
+            };
+            
+            // 合并高级权限配置
+            try {
+                const advancedPermsText = document.getElementById('permissionsJson').value.trim();
+                if (advancedPermsText) {
+                    const advancedPerms = JSON.parse(advancedPermsText);
+                    Object.assign(permissions, advancedPerms);
+                }
+            } catch (error) {
+                showAlert('高级权限配置 JSON 格式错误', 'error');
+                return;
+            }
+            
+            formData.permissions = permissions;
+
+            try {
+                const url = id ? `${API_BASE}/domains/${id}` : `${API_BASE}/domains`;
+                const method = id ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error?.message || '操作失败');
+                }
+                
+                showAlert(id ? '更新成功' : '创建成功', 'success');
+                closeModal();
+                loadDomains();
+            } catch (error) {
+                showAlert('操作失败: ' + error.message, 'error');
+            }
+        });
+        
+        // 显示提示信息
+        function showAlert(message, type) {
+            const alert = document.getElementById('alert');
+            alert.textContent = message;
+            alert.className = `alert alert-${type} show`;
+            setTimeout(() => alert.classList.remove('show'), 3000);
+        }
+    </script>
+</body>
+</html>
