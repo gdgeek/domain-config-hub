@@ -53,42 +53,46 @@ describe('RateLimitMiddleware', () => {
       const limit = parseInt(process.env.RATE_LIMIT_MAX || '100', 10);
 
       // 发送超过限制的请求
+      const requests = [];
       for (let i = 0; i < limit; i++) {
-        await request(app).get('/test');
+        requests.push(request(app).get('/test'));
       }
+      await Promise.all(requests);
 
       // 下一个请求应该被限流
       const response = await request(app)
-        .get('/test')
-        .expect(429);
+        .get('/test');
 
       // 验证错误响应格式
+      expect(response.status).toBe(429);
       expect(response.body).toEqual({
         error: {
           code: 'RATE_LIMIT_EXCEEDED',
           message: '请求过于频繁，请稍后再试',
         },
       });
-    });
+    }, 10000); // 增加超时时间
 
     it('应该返回标准化的错误响应格式', async () => {
       const limit = parseInt(process.env.RATE_LIMIT_MAX || '100', 10);
 
       // 发送超过限制的请求
+      const requests = [];
       for (let i = 0; i < limit; i++) {
-        await request(app).get('/test');
+        requests.push(request(app).get('/test'));
       }
+      await Promise.all(requests);
 
       const response = await request(app)
-        .get('/test')
-        .expect(429);
+        .get('/test');
 
       // 验证错误响应结构
+      expect(response.status).toBe(429);
       expect(response.body).toHaveProperty('error');
       expect(response.body.error).toHaveProperty('code');
       expect(response.body.error).toHaveProperty('message');
       expect(response.body.error.code).toBe('RATE_LIMIT_EXCEEDED');
-    });
+    }, 10000); // 增加超时时间
   });
 
   describe('配置验证', () => {

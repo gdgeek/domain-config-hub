@@ -165,3 +165,48 @@ export const idParamSchema = Joi.object({
       'any.required': 'ID是必需的',
     }),
 });
+
+/**
+ * 创建配置验证模式（不包含 domain 字段）
+ * 用于验证创建配置的请求体
+ */
+export const createConfigSchema = Joi.object({
+  title: Joi.string()
+    .max(255)
+    .allow(null, '')
+    .messages({
+      'string.base': '标题必须是字符串',
+      'string.max': '标题长度不能超过255字符',
+    }),
+  author: Joi.string()
+    .max(255)
+    .allow(null, '')
+    .messages({
+      'string.base': '作者必须是字符串',
+      'string.max': '作者长度不能超过255字符',
+    }),
+  description: Joi.string()
+    .max(255)
+    .allow(null, '')
+    .messages({
+      'string.base': '描述必须是字符串',
+      'string.max': '描述长度不能超过255字符',
+    }),
+  keywords: Joi.string()
+    .max(255)
+    .allow(null, '')
+    .messages({
+      'string.base': '关键词必须是字符串',
+      'string.max': '关键词长度不能超过255字符',
+    }),
+  links: Joi.object()
+    .allow(null)
+    .messages({
+      'object.base': 'links必须是有效的JSON对象',
+    }),
+  permissions: Joi.object()
+    .allow(null)
+    .messages({
+      'object.base': 'permissions必须是有效的JSON对象',
+    }),
+});
