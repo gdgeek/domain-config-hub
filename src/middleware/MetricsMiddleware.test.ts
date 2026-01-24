@@ -31,7 +31,7 @@ describe('MetricsMiddleware', () => {
 
     mockResponse = {
       statusCode: 200,
-      on: jest.fn((event: string, callback: () => void) => {
+      on: jest.fn((event: string, callback: (...args: any[]) => void) => {
         if (event === 'finish') {
           finishCallback = callback;
         }
@@ -286,14 +286,14 @@ describe('MetricsMiddleware', () => {
     });
 
     it('should handle concurrent requests', async () => {
-      const requests = [];
+      const requests: Partial<Response>[] = [];
 
       // 创建多个并发请求
       for (let i = 0; i < 5; i++) {
         const req = { ...mockRequest };
         const res: Partial<Response> = {
           ...mockResponse,
-          on: jest.fn((event: string, callback: () => void): Response => {
+          on: jest.fn((event: string, callback: (...args: any[]) => void): Response => {
             if (event === 'finish') {
               // 立即调用回调
               setTimeout(callback, 0);

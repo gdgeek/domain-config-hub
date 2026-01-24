@@ -53,7 +53,7 @@ describe('RateLimitMiddleware', () => {
       const limit = parseInt(process.env.RATE_LIMIT_MAX || '100', 10);
 
       // 发送超过限制的请求
-      const requests = [];
+      const requests: Promise<any>[] = [];
       for (let i = 0; i < limit; i++) {
         requests.push(request(app).get('/test'));
       }
@@ -77,7 +77,7 @@ describe('RateLimitMiddleware', () => {
       const limit = parseInt(process.env.RATE_LIMIT_MAX || '100', 10);
 
       // 发送超过限制的请求
-      const requests = [];
+      const requests: Promise<any>[] = [];
       for (let i = 0; i < limit; i++) {
         requests.push(request(app).get('/test'));
       }

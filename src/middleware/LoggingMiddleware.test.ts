@@ -38,7 +38,7 @@ describe('LoggingMiddleware', () => {
 
     mockResponse = {
       statusCode: 200,
-      on: jest.fn((event: string, callback: () => void) => {
+      on: jest.fn((event: string, callback: (...args: any[]) => void) => {
         if (event === 'finish') {
           finishCallback = callback;
         }

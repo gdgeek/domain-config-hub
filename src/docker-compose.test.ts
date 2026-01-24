@@ -1,11 +1,12 @@
 import { readFileSync } from 'fs';
+import { join } from 'path';
 import { parse } from 'yaml';
 
 describe('docker-compose.yml', () => {
   let dockerCompose: any;
 
   beforeAll(() => {
-    const content = readFileSync('docker-compose.yml', 'utf-8');
+    const content = readFileSync(join(__dirname, '../docker-compose.yml'), 'utf-8');
     dockerCompose = parse(content);
   });
 
