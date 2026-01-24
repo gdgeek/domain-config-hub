@@ -6,7 +6,8 @@ describe('docker-compose.yml', () => {
   let dockerCompose: any;
 
   beforeAll(() => {
-    const content = readFileSync(join(__dirname, '../docker-compose.yml'), 'utf-8');
+    // Use process.cwd() to get project root, which works in both local and CI environments
+    const content = readFileSync(join(process.cwd(), 'docker-compose.yml'), 'utf-8');
     dockerCompose = parse(content);
   });
 
