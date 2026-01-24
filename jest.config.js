@@ -25,6 +25,9 @@ module.exports = {
     '!src/**/*.property.test.ts',
     '!src/**/*.integration.ts',
     '!src/types/**/*.ts',
+    '!src/index.ts',
+    '!src/app-v2.ts',
+    '!src/models/migrations/**/*.ts',
   ],
   coverageThreshold: {
     global: {

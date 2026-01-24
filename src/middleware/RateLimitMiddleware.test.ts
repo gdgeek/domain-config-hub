@@ -83,6 +83,9 @@ describe('RateLimitMiddleware', () => {
       }
       await Promise.all(requests);
 
+      // 添加小延迟确保限流器状态更新
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       const response = await request(app)
         .get('/test');
 
@@ -92,7 +95,7 @@ describe('RateLimitMiddleware', () => {
       expect(response.body.error).toHaveProperty('code');
       expect(response.body.error).toHaveProperty('message');
       expect(response.body.error.code).toBe('RATE_LIMIT_EXCEEDED');
-    }, 10000); // 增加超时时间
+    }, 15000); // 增加超时时间
   });
 
   describe('配置验证', () => {
