@@ -16,7 +16,7 @@ import { swaggerSpec } from './config/swagger';
 import { metricsRegistry } from './config/metrics';
 import { config } from './config/env';
 import { sequelize } from './config/database';
-import * as redisModule from './config/redis';
+import { isRedisEnabled, connectRedis } from './config/redis';
 import { logger } from './config/logger';
 
 // 导入路由
@@ -65,9 +65,10 @@ export function createApp(): Express {
 
       // 检查 Redis 连接（如果启用）
       let redisStatus = 'disabled';
-      if (redisModule.isRedisEnabled() && redisModule.redis) {
+      if (isRedisEnabled()) {
         try {
-          await redisModule.redis.ping();
+          // 尝试连接 Redis 来检查健康状态
+          await connectRedis();
           redisStatus = 'healthy';
         } catch (error) {
           redisStatus = 'unhealthy';
