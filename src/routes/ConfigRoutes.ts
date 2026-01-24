@@ -9,7 +9,7 @@ import { Router, Request, Response } from 'express';
 import configService from '../services/ConfigService';
 import { asyncHandler } from '../middleware/ErrorMiddleware';
 import { validateBody, validateQuery, validateParams } from '../middleware/ValidationMiddleware';
-import { createConfigSchema, updateConfigSchema, paginationSchema, idParamSchema } from '../validation/schemas';
+import { createConfigSchema, paginationSchema, idParamSchema } from '../validation/schemas';
 import { NotFoundError } from '../errors/NotFoundError';
 
 const router = Router();
@@ -171,7 +171,7 @@ router.post(
 router.put(
   '/:id',
   validateParams(idParamSchema),
-  validateBody(updateConfigSchema),
+  validateBody(createConfigSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const id = parseInt(req.params.id, 10);
     const config = await configService.update(id, req.body);

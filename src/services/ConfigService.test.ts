@@ -36,7 +36,8 @@ describe('ConfigService', () => {
 
       const mockConfig = {
         id: 1,
-        ...input,
+        title: '测试配置',
+        author: '测试作者',
         description: null,
         keywords: null,
         links: null,
@@ -48,7 +49,14 @@ describe('ConfigService', () => {
       const result = await configService.create(input);
 
       expect(result).toEqual(mockConfig);
-      expect(mockConfigRepository.create).toHaveBeenCalledWith(input);
+      expect(mockConfigRepository.create).toHaveBeenCalledWith({
+        title: '测试配置',
+        author: '测试作者',
+        description: null,
+        keywords: null,
+        links: null,
+        permissions: null,
+      });
     });
   });
 

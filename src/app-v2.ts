@@ -13,10 +13,10 @@ import { rateLimitMiddleware } from './middleware/RateLimitMiddleware';
 import { metricsMiddleware } from './middleware/MetricsMiddleware';
 import { errorHandler } from './middleware/ErrorMiddleware';
 import { swaggerSpec } from './config/swagger';
-import { register } from './config/metrics';
+import { metricsRegistry } from './config/metrics';
 import { config } from './config/env';
 import { sequelize } from './config/database';
-import { redis, isRedisEnabled } from './config/redis';
+import * as redisModule from './config/redis';
 import { logger } from './config/logger';
 
 // 导入路由
@@ -65,9 +65,9 @@ export function createApp(): Express {
 
       // 检查 Redis 连接（如果启用）
       let redisStatus = 'disabled';
-      if (isRedisEnabled() && redis) {
+      if (redisModule.isRedisEnabled() && redisModule.redis) {
         try {
-          await redis.ping();
+          await redisModule.redis.ping();
           redisStatus = 'healthy';
         } catch (error) {
           redisStatus = 'unhealthy';
@@ -101,8 +101,8 @@ export function createApp(): Express {
   // ============================================================
   app.get('/metrics', async (_req: Request, res: Response) => {
     try {
-      res.set('Content-Type', register.contentType);
-      const metrics = await register.metrics();
+      res.set('Content-Type', metricsRegistry.contentType);
+      const metrics = await metricsRegistry.metrics();
       res.send(metrics);
     } catch (error) {
       logger.error('获取监控指标失败', { error });

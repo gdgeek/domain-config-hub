@@ -7,7 +7,7 @@
 
 import { ConfigRepository } from '../repositories/ConfigRepository';
 import { DomainV2Repository } from '../repositories/DomainV2Repository';
-import { ConfigAttributes } from '../models/Config';
+import { ConfigAttributes, ConfigCreationAttributes } from '../models/Config';
 import { NotFoundError } from '../errors/NotFoundError';
 import { ConflictError } from '../errors/ConflictError';
 import { logger } from '../config/logger';
@@ -75,7 +75,17 @@ export class ConfigService {
   async create(input: ConfigInput): Promise<ConfigOutput> {
     logger.info('创建配置', { input });
 
-    const config = await this.configRepository.create(input);
+    // 转换 undefined 为 null
+    const data: ConfigCreationAttributes = {
+      title: input.title ?? null,
+      author: input.author ?? null,
+      description: input.description ?? null,
+      keywords: input.keywords ?? null,
+      links: input.links ?? null,
+      permissions: input.permissions ?? null,
+    };
+
+    const config = await this.configRepository.create(data);
     return this.toOutput(config);
   }
 
