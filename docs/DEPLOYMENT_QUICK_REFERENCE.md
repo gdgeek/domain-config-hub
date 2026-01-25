@@ -1,6 +1,22 @@
 # 部署快速参考
 
-## 🎯 三种部署方式对比
+## 🎯 推荐部署方式
+
+### ⭐ Portainer + 腾讯云数据库（生产环境推荐）
+
+**最佳选择，适合生产环境！**
+
+- ✅ Web 界面可视化管理
+- ✅ 自动部署（配合 CI/CD）
+- ✅ 无需管理数据库容器
+- ✅ 腾讯云自动备份和高可用
+- ✅ 简单易用，运维友好
+
+**详细指南**: [Portainer 部署指南](./PORTAINER_DEPLOYMENT_GUIDE.md)
+
+---
+
+## 📦 三种部署方式对比
 
 | 方式 | 适用场景 | 复杂度 | 成本 | 推荐度 |
 |------|---------|--------|------|--------|
@@ -97,22 +113,28 @@ docker-compose -f docker-compose.cloud.yml up -d
 
 ---
 
-## 🐳 方式 3: Portainer 可视化部署
+## 🐳 方式 3: Portainer 可视化部署（⭐ 推荐）
 
 **适用场景**：生产环境，需要可视化管理
 
-### 部署步骤
+### 5 分钟快速部署
 
-1. **登录 Portainer**
-   ```
-   https://your-portainer-domain.com
-   ```
+**完整详细指南**: [Portainer 部署指南](./PORTAINER_DEPLOYMENT_GUIDE.md)
 
-2. **创建 Stack**
-   - Stacks → Add stack
-   - Name: `domain-config-service`
+#### 1. 准备腾讯云服务
 
-3. **粘贴配置**
+- 创建 MySQL 实例，记录内网地址
+- 创建 Redis 实例，记录内网地址
+- 导入数据库初始化脚本
+- 配置安全组规则
+
+#### 2. 在 Portainer 中创建 Stack
+
+登录 Portainer → Stacks → Add stack
+
+**Stack 名称**: `domain-config-service`
+
+**配置内容**:
    ```yaml
    version: '3.8'
    services:
@@ -128,20 +150,36 @@ docker-compose -f docker-compose.cloud.yml up -d
          - REDIS_HOST=${REDIS_HOST}
          - REDIS_PASSWORD=${REDIS_PASSWORD}
          - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+       volumes:
+         - app-logs:/app/logs
+   volumes:
+     app-logs:
    ```
 
-4. **添加环境变量**
-   ```
-   DB_HOST=rm-xxxxx.mysql.rds.tencentyun.com
-   DB_PASSWORD=your_password
-   REDIS_HOST=r-xxxxx.redis.rds.tencentyun.com
-   REDIS_PASSWORD=your_password
-   ADMIN_PASSWORD=your_password
-   ```
+#### 3. 添加环境变量
 
-5. **配置 Webhook 自动部署**
-   - Stack 详情 → Webhooks → Add webhook
-   - 复制 URL 到 GitHub Secrets: `PORTAINER_WEBHOOK_URL`
+在 Environment variables 部分添加：
+
+```
+DB_HOST=rm-xxxxx.mysql.rds.tencentyun.com
+DB_PASSWORD=your_mysql_password
+REDIS_HOST=r-xxxxx.redis.rds.tencentyun.com
+REDIS_PASSWORD=your_redis_password
+ADMIN_PASSWORD=your_admin_password
+```
+
+#### 4. 部署并验证
+
+- 点击 **Deploy the stack**
+- 等待容器启动（约 30 秒）
+- 访问 `http://your-server:3000/health` 验证
+
+#### 5. 配置自动部署
+
+- Stack 详情 → Webhooks → Add webhook
+- 复制 Webhook URL
+- 添加到 GitHub Secrets: `PORTAINER_WEBHOOK_URL`
+- 完成！推送代码自动部署 🎉
 
 ### 优势
 
