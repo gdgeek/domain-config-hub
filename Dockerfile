@@ -46,8 +46,10 @@ COPY --chown=nodejs:nodejs src/models/migrations ./src/models/migrations
 # Copy public files for admin interface
 COPY --chown=nodejs:nodejs public ./public
 
-# Create logs directory with proper permissions
-RUN mkdir -p logs && chown -R nodejs:nodejs logs
+# Create logs directory with proper permissions BEFORE switching to nodejs user
+RUN mkdir -p logs && \
+    chown -R nodejs:nodejs logs && \
+    chmod -R 755 logs
 
 # Switch to non-root user
 USER nodejs

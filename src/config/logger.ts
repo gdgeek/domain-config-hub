@@ -25,11 +25,19 @@ export interface LogContext {
 /**
  * 确保日志目录存在
  * @param logFilePath 日志文件路径
+ * @returns 是否成功创建目录
  */
-function ensureLogDirectory(logFilePath: string): void {
-  const logDir = path.dirname(logFilePath);
-  if (!fs.existsSync(logDir)) {
-    fs.mkdirSync(logDir, { recursive: true });
+function ensureLogDirectory(logFilePath: string): boolean {
+  try {
+    const logDir = path.dirname(logFilePath);
+    if (!fs.existsSync(logDir)) {
+      fs.mkdirSync(logDir, { recursive: true });
+    }
+    return true;
+  } catch (error) {
+    // 如果无法创建目录（权限问题），返回 false
+    console.error('Failed to create log directory:', error);
+    return false;
   }
 }
 
@@ -68,33 +76,38 @@ function createLogger(): winston.Logger {
   const logFile = config.logFile;
   const nodeEnv = config.nodeEnv;
 
-  // 确保日志目录存在
-  ensureLogDirectory(logFile);
+  // 尝试确保日志目录存在
+  const canWriteToFile = ensureLogDirectory(logFile);
 
   const transports: winston.transport[] = [];
 
-  // 文件输出 - 使用 JSON 格式
-  transports.push(
-    new winston.transports.File({
-      filename: logFile,
-      level: logLevel,
-      format: jsonFormat,
-      maxsize: 10 * 1024 * 1024, // 10MB
-      maxFiles: 5,
-    })
-  );
+  // 只有在可以写入文件时才添加文件传输
+  if (canWriteToFile) {
+    // 文件输出 - 使用 JSON 格式
+    transports.push(
+      new winston.transports.File({
+        filename: logFile,
+        level: logLevel,
+        format: jsonFormat,
+        maxsize: 10 * 1024 * 1024, // 10MB
+        maxFiles: 5,
+      })
+    );
 
-  // 错误日志单独输出到 error.log
-  const errorLogFile = logFile.replace(/\.log$/, '.error.log');
-  transports.push(
-    new winston.transports.File({
-      filename: errorLogFile,
-      level: 'error',
-      format: jsonFormat,
-      maxsize: 10 * 1024 * 1024, // 10MB
-      maxFiles: 5,
-    })
-  );
+    // 错误日志单独输出到 error.log
+    const errorLogFile = logFile.replace(/\.log$/, '.error.log');
+    transports.push(
+      new winston.transports.File({
+        filename: errorLogFile,
+        level: 'error',
+        format: jsonFormat,
+        maxsize: 10 * 1024 * 1024, // 10MB
+        maxFiles: 5,
+      })
+    );
+  } else {
+    console.warn('Cannot write to log files, using console only');
+  }
 
   // 控制台输出
   if (nodeEnv !== 'test') {
