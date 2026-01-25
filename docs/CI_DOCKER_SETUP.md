@@ -61,10 +61,13 @@ GitHub 仓库 → Settings → Secrets and variables → Actions
 ## 🚀 触发构建
 
 ### 自动触发
-当代码推送到 `main` 分支时，CI 会自动：
-1. 运行所有测试
-2. 构建 Docker 镜像
-3. 推送到腾讯云容器镜像服务
+当代码推送到 `main` 分支时，CI 会自动执行三个阶段：
+
+1. **Test**：运行所有测试和代码检查
+2. **Build**：编译 TypeScript 代码
+3. **Deploy**：构建并推送 Docker 镜像，触发自动部署
+
+只有前面的阶段成功，才会执行下一个阶段。Deploy 阶段仅在 main 分支推送时执行。
 
 ### 手动触发
 也可以通过 GitHub Actions 页面手动触发工作流。
@@ -73,38 +76,54 @@ GitHub 仓库 → Settings → Secrets and variables → Actions
 
 ## 📋 CI 工作流程
 
+CI 流程分为三个独立的阶段：Test → Build → Deploy
+
 ```mermaid
 graph LR
-    A[Push to main] --> B[Run Tests]
+    A[Push to main] --> B[Test Job]
     B --> C{Tests Pass?}
-    C -->|Yes| D[Build Docker Image]
+    C -->|Yes| D[Build Job]
     C -->|No| E[Fail]
-    D --> F[Push to Registry]
-    F --> G[Trigger Portainer Webhook]
-    G --> H[Auto Deploy]
-    H --> I[Success]
+    D --> F{Build Success?}
+    F -->|Yes| G[Deploy Job]
+    F -->|No| E
+    G --> H[Build Docker Image]
+    H --> I[Push to Registry]
+    I --> J[Trigger Portainer Webhook]
+    J --> K[Auto Deploy]
+    K --> L[Success]
 ```
 
 ### 详细步骤
 
-1. **测试阶段** (test job)
-   - 安装依赖
-   - 运行 ESLint
-   - 运行类型检查
-   - 运行单元测试
-   - 生成覆盖率报告
+#### 1. Test Job（测试阶段）
+- 安装依赖
+- 运行 ESLint 代码检查
+- 运行 TypeScript 类型检查
+- 运行单元测试和集成测试
+- 生成代码覆盖率报告
+- 上传覆盖率到 Codecov
 
-2. **构建阶段** (build job)
-   - 编译 TypeScript
-   - 上传构建产物
+**触发条件**：所有分支的 push 和 pull request
 
-3. **Docker 阶段** (docker job)
-   - 仅在 main 分支推送时执行
-   - 登录腾讯云容器镜像服务
-   - 构建 Docker 镜像
-   - 推送到镜像仓库
-   - 生成多个标签
-   - 触发 Portainer Webhook 自动部署
+#### 2. Build Job（构建阶段）
+- 编译 TypeScript 代码
+- 生成生产环境构建产物
+- 上传构建产物为 artifacts
+
+**触发条件**：Test Job 成功后执行
+
+#### 3. Deploy Job（部署阶段）
+- 登录腾讯云容器镜像服务
+- 构建 Docker 镜像
+- 推送镜像到镜像仓库
+- 生成多个标签（latest、main、main-sha）
+- 触发 Portainer Webhook 自动部署
+
+**触发条件**：
+- Test Job 和 Build Job 都成功
+- 仅在 main 分支推送时执行
+- 不在 pull request 时执行
 
 ---
 
