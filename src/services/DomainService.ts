@@ -258,7 +258,7 @@ export class DomainService {
     const plainConfig = config.get ? config.get({ plain: true }) : config;
 
     // 创建新对象，排除 id, createdAt 和 updatedAt
-    const { id, createdAt, updatedAt, ...cleanConfig } = plainConfig;
+    const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...cleanConfig } = plainConfig;
     return cleanConfig;
   }
 

@@ -183,8 +183,8 @@ function generateHtmlResponse(data: any, statusCode: number): string {
             html = html.replace(/"([^"]+)":/g, '<span class="json-key">"$1"</span>:');
             html = html.replace(/: "([^"]*)"/g, ': <span class="json-string">"$1"</span>');
             
-            // 高亮数字
-            html = html.replace(/: (\d+\.?\d*)/g, ': <span class="json-number">$1</span>');
+            // 高亮数字 (使用字符类避免转义)
+            html = html.replace(/: ([0-9]+[.]?[0-9]*)/g, ': <span class="json-number">$1</span>');
             
             // 高亮布尔值
             html = html.replace(/: (true|false)/g, ': <span class="json-boolean">$1</span>');
