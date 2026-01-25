@@ -94,6 +94,27 @@ async function startApp(): Promise<void> {
     // ============================================================
     server = http.createServer(app);
 
+    // ============================================================
+    // 配置背压机制（连接数限制）
+    // ============================================================
+    // 限制最大并发连接数，防止服务器过载
+    // 超过此限制的新连接将被拒绝，提供基本的背压保护
+    server.maxConnections = 1000;
+    
+    // 设置请求超时时间（毫秒）
+    // 防止慢速客户端占用连接资源
+    server.timeout = 30000; // 30 秒
+    
+    // 设置 keep-alive 超时时间（毫秒）
+    // 控制空闲连接的保持时间
+    server.keepAliveTimeout = 65000; // 65 秒（略大于常见负载均衡器的 60 秒）
+    
+    logger.info('背压机制已配置', {
+      maxConnections: server.maxConnections,
+      timeout: server.timeout,
+      keepAliveTimeout: server.keepAliveTimeout,
+    });
+
     // 监听端口
     await new Promise<void>((resolve, reject) => {
       server!.listen(config.port, () => {
