@@ -126,7 +126,7 @@ DELETE /api/v1/sessions           # 删除会话（登出）
 | 获取列表 | `GET /domains` | `GET /domains` | ✅ 保持 |
 | 通过域名查询 | `GET /domains?url=xxx` | `GET /domains?domain=xxx` | 🔄 参数名变更 |
 | 通过域名查询 | `GET /domains/{domain}` | `GET /domains?domain={domain}` | 🔄 改为查询参数 |
-| 通过 ID 获取 | `GET /domains/id/{id}` | `GET /domains/{id}` | 🔄 路径简化 |
+| 通过 ID 获取 | `GET /domains/{id}` | `GET /domains/{id}` | 🔄 路径简化 |
 | 创建域名 | `POST /domains` | `POST /domains` | ✅ 保持 |
 | 更新域名 | `PUT /domains/{id}` | `PUT /domains/{id}` | ✅ 保持 |
 | 部分更新 | - | `PATCH /domains/{id}` | ➕ 新增 |

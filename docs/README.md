@@ -14,6 +14,7 @@ docs/
 ## 📚 快速导航
 
 ### API 文档
+- [前端 AI 调用指南](api/FRONTEND_AI_GUIDE.md) ⭐ 推荐
 - [API 使用指南](api/API_USAGE_GUIDE.md)
 - [API 版本说明](api/API_VERSIONS.md)
 - [RESTful API 参考](api/RESTFUL_QUICK_REFERENCE.md)
