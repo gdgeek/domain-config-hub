@@ -132,6 +132,215 @@ curl http://localhost:3000/health
 
 ---
 
+## ☁️ 使用腾讯云托管服务（推荐生产环境）
+
+如果你使用腾讯云的 MySQL 和 Redis 托管服务，部署会更简单、更稳定。
+
+### 优势
+
+- ✅ 无需管理数据库容器
+- ✅ 自动备份和高可用
+- ✅ 更好的性能和安全性
+- ✅ 简化运维工作
+
+### 部署步骤
+
+#### 1. 准备腾讯云服务
+
+**创建 MySQL 实例**
+1. 登录腾讯云控制台
+2. 进入云数据库 MySQL
+3. 创建实例，记录：
+   - 内网地址：`rm-xxxxx.mysql.rds.tencentyun.com`
+   - 端口：`3306`
+   - 数据库名：`domain_config`
+   - 用户名和密码
+
+**创建 Redis 实例**
+1. 进入云数据库 Redis
+2. 创建实例，记录：
+   - 内网地址：`r-xxxxx.redis.rds.tencentyun.com`
+   - 端口：`6379`
+   - 密码（如果设置了）
+
+**初始化数据库**
+```bash
+# 下载初始化脚本
+wget https://raw.githubusercontent.com/gdgeek/domain-config-hub/main/src/models/migrations/domain.sql
+
+# 连接到腾讯云 MySQL 并导入
+mysql -h rm-xxxxx.mysql.rds.tencentyun.com -u root -p domain_config < domain.sql
+```
+
+#### 2. 创建简化的 docker-compose.yml
+
+```bash
+cat > docker-compose.cloud.yml << 'EOF'
+version: '3.8'
+
+services:
+  app:
+    image: hkccr.ccs.tencentyun.com/gdgeek/domain:latest
+    container_name: domain-config-app
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      # 腾讯云 MySQL 配置
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_NAME=${DB_NAME:-domain_config}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_POOL_MIN=2
+      - DB_POOL_MAX=10
+      # 腾讯云 Redis 配置
+      - REDIS_ENABLED=true
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_TTL=3600
+      # 其他配置
+      - LOG_LEVEL=info
+      - RATE_LIMIT_MAX=100
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+    volumes:
+      - app-logs:/app/logs
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  app-logs:
+EOF
+```
+
+#### 3. 创建 .env 配置文件
+
+```bash
+cat > .env << 'EOF'
+# 应用配置
+PORT=3000
+
+# 腾讯云 MySQL 配置
+DB_HOST=rm-xxxxx.mysql.rds.tencentyun.com
+DB_PORT=3306
+DB_NAME=domain_config
+DB_USER=root
+DB_PASSWORD=your_mysql_password
+
+# 腾讯云 Redis 配置
+REDIS_HOST=r-xxxxx.redis.rds.tencentyun.com
+REDIS_PORT=6379
+REDIS_PASSWORD=your_redis_password
+
+# 管理员密码
+ADMIN_PASSWORD=your_admin_password
+EOF
+```
+
+**⚠️ 修改配置**
+```bash
+nano .env
+# 替换为你的实际配置：
+# - DB_HOST: 腾讯云 MySQL 内网地址
+# - DB_PASSWORD: MySQL 密码
+# - REDIS_HOST: 腾讯云 Redis 内网地址
+# - REDIS_PASSWORD: Redis 密码
+# - ADMIN_PASSWORD: 管理员密码
+```
+
+#### 4. 登录腾讯云容器镜像服务
+
+```bash
+docker login hkccr.ccs.tencentyun.com
+# 输入用户名和密码（在容器镜像服务中获取）
+```
+
+#### 5. 启动应用
+
+```bash
+docker-compose -f docker-compose.cloud.yml up -d
+```
+
+#### 6. 验证部署
+
+```bash
+# 查看容器状态
+docker-compose -f docker-compose.cloud.yml ps
+
+# 查看日志
+docker-compose -f docker-compose.cloud.yml logs -f
+
+# 测试健康检查
+curl http://localhost:3000/health
+```
+
+**预期响应：**
+```json
+{
+  "status": "healthy",
+  "timestamp": "2026-01-25T00:00:00.000Z",
+  "services": {
+    "database": "connected",
+    "redis": "connected"
+  }
+}
+```
+
+### 常用命令
+
+```bash
+# 使用简化的命令别名
+alias dc='docker-compose -f docker-compose.cloud.yml'
+
+# 查看状态
+dc ps
+
+# 查看日志
+dc logs -f
+
+# 重启服务
+dc restart
+
+# 更新镜像
+dc pull && dc up -d
+
+# 停止服务
+dc down
+```
+
+### 网络配置注意事项
+
+**安全组配置**
+1. 腾讯云 MySQL 安全组：允许应用服务器 IP 访问 3306 端口
+2. 腾讯云 Redis 安全组：允许应用服务器 IP 访问 6379 端口
+3. 应用服务器安全组：允许外网访问 3000 端口（或通过负载均衡）
+
+**内网访问**
+- 确保应用服务器和数据库在同一 VPC 或已配置对等连接
+- 使用内网地址可以获得更好的性能和安全性
+
+### 成本优化
+
+使用腾讯云托管服务的成本考虑：
+
+**优势：**
+- 无需为数据库容器付费计算资源
+- 自动备份和高可用无需额外配置
+- 按需付费，灵活扩展
+
+**建议：**
+- 开发/测试环境：使用基础版 MySQL 和 Redis
+- 生产环境：使用高可用版，配置自动备份
+
+---
+
 ## 🔧 详细部署步骤
 
 ### 方案 1: 使用 CI 构建的镜像（推荐）
@@ -669,6 +878,100 @@ docker volume prune
 
 # 查看磁盘使用
 docker system df
+```
+
+---
+
+## � 使用 Portainer 部署（可视化管理）
+
+Portainer 提供了友好的 Web 界面来管理 Docker 容器。
+
+### 在 Portainer 中部署
+
+#### 1. 创建 Stack
+
+1. 登录 Portainer
+2. 选择 Stacks → Add stack
+3. 命名：`domain-config-service`
+
+#### 2. 使用腾讯云服务的配置
+
+**Web editor 中粘贴：**
+
+```yaml
+version: '3.8'
+
+services:
+  app:
+    image: hkccr.ccs.tencentyun.com/gdgeek/domain:latest
+    container_name: domain-config-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      # 腾讯云 MySQL
+      - DB_HOST=rm-xxxxx.mysql.rds.tencentyun.com
+      - DB_PORT=3306
+      - DB_NAME=domain_config
+      - DB_USER=root
+      - DB_PASSWORD=your_mysql_password
+      # 腾讯云 Redis
+      - REDIS_ENABLED=true
+      - REDIS_HOST=r-xxxxx.redis.rds.tencentyun.com
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=your_redis_password
+      - REDIS_TTL=3600
+      # 其他配置
+      - LOG_LEVEL=info
+      - RATE_LIMIT_MAX=100
+      - ADMIN_PASSWORD=your_admin_password
+    volumes:
+      - app-logs:/app/logs
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  app-logs:
+```
+
+#### 3. 配置 Webhook 自动更新
+
+1. 在 Stack 详情页面，点击 "Webhooks"
+2. 点击 "Add webhook"
+3. 复制 Webhook URL
+4. 将 URL 添加到 GitHub Secrets：`PORTAINER_WEBHOOK_URL`
+
+现在每次推送代码到 main 分支，CI 会自动：
+1. 构建新镜像
+2. 推送到腾讯云
+3. 触发 Portainer Webhook
+4. Portainer 自动拉取最新镜像并重启服务
+
+#### 4. 使用环境变量（推荐）
+
+在 Portainer 中使用环境变量更安全：
+
+1. 在 Stack 配置中使用变量：
+```yaml
+environment:
+  - DB_PASSWORD=${DB_PASSWORD}
+  - REDIS_PASSWORD=${REDIS_PASSWORD}
+  - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+```
+
+2. 在 "Environment variables" 部分添加：
+```
+DB_HOST=rm-xxxxx.mysql.rds.tencentyun.com
+DB_PASSWORD=your_mysql_password
+REDIS_HOST=r-xxxxx.redis.rds.tencentyun.com
+REDIS_PASSWORD=your_redis_password
+ADMIN_PASSWORD=your_admin_password
 ```
 
 ---
