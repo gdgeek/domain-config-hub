@@ -97,7 +97,7 @@ cp .env.example .env
 mysql -u root -p -e "CREATE DATABASE bujiaban CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci;"
 
 # 导入表结构
-mysql -u root -p bujiaban < domain.sql
+mysql -u root -p bujiaban < migrations/domain.sql
 
 # 执行迁移（添加 permissions 字段）
 ./scripts/migrate.sh migrations/001_add_permissions_field.sql
@@ -339,12 +339,12 @@ ADMIN_PASSWORD=admin123
 
 ### 详细说明
 
-- [双表架构设计文档](docs/TWO_TABLES_DESIGN.md)
-- [双表架构快速开始](docs/TWO_TABLES_QUICKSTART.md)
-- [双表架构使用指南](docs/TWO_TABLES_USAGE.md)
-- [数据库迁移快速开始](docs/DATABASE_MIGRATION_QUICKSTART.md)
+- [双表架构设计文档](docs/architecture/TWO_TABLES_DESIGN.md)
+- [双表架构快速开始](docs/architecture/TWO_TABLES_QUICKSTART.md)
+- [双表架构使用指南](docs/architecture/TWO_TABLES_USAGE.md)
+- [数据库迁移快速开始](docs/architecture/DATABASE_MIGRATION_QUICKSTART.md)
 - [完整迁移指南](migrations/README.md)
-- [权限配置使用指南](docs/PERMISSIONS_GUIDE.md)
+- [权限配置使用指南](docs/architecture/PERMISSIONS_GUIDE.md)
 
 ## ⚙️ 配置说明
 
@@ -545,7 +545,7 @@ Docker Compose 自动管理以下数据卷：
 
 ### 详细文档
 
-完整的 Docker 部署指南请查看：[Docker 部署文档](docs/DOCKER_DEPLOYMENT.md)
+完整的 Docker 部署指南请查看：[Docker 部署文档](docs/deployment/DOCKER_DEPLOYMENT.md)
 
 ### 单独使用 Docker
 

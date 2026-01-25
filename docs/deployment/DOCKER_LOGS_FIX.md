@@ -2,9 +2,9 @@
 
 ## 问题描述
 
-应用在 Docker 容器中启动失败，错误信息：
+容器在 Portainer 中显示 `running` 状态而不是 `healthy`，访问 `/health` 端点返回 404。
 
-```
+查看容
 Error: EACCES: permission denied, mkdir 'logs'
     at Object.mkdirSync (node:fs:1363:26)
     at ensureLogDirectory (/app/dist/config/logger.js:31:22)

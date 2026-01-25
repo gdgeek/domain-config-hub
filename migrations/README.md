@@ -237,7 +237,7 @@ ERROR 3140 (22032): Invalid JSON text
 
 - `src/models/Domain.ts` - Domain 模型定义
 - `src/validation/schemas.ts` - 验证规则（需更新以支持 permissions）
-- `domain.sql` - 完整的表结构定义
+- `migrations/domain.sql` - 完整的表结构定义
 
 ## 支持
 

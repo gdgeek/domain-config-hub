@@ -3,318 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Swagger API 验证</title>
+    <title>Swagger API 测试</title>
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: Arial, sans-serif;
             max-width: 1200px;
-            margin: 0 auto;
+            margin: 50px auto;
             padding: 20px;
-            background: #f5f5f5;
-        }
-        .header {
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        h1 {
-            margin: 0 0 10px 0;
-            color: #333;
-        }
-        .subtitle {
-            color: #666;
-            margin: 0;
         }
         .test-section {
-            background: white;
             margin: 20px 0;
-            padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .test-section h2 {
-            margin-top: 0;
-            color: #2c3e50;
-            border-bottom: 2px solid #3498db;
-            padding-bottom: 10px;
-        }
-        button {
-            background: #3498db;
-            color: white;
-            border: none;
-            padding: 10px 20px;
+            padding: 20px;
+            border: 1px solid #ddd;
             border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-            margin-right: 10px;
-        }
-        button:hover {
-            background: #2980b9;
         }
         .success {
-            color: #27ae60;
-            font-weight: bold;
+            color: green;
         }
         .error {
-            color: #e74c3c;
-            font-weight: bold;
+            color: red;
         }
         pre {
-            background: #2c3e50;
-            color: #ecf0f1;
-            padding: 15px;
-            border-radius: 5px;
-            overflow-x: auto;
-            font-size: 13px;
-            line-height: 1.5;
-        }
-        .link-box {
-            background: #ecf0f1;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 15px 0;
-        }
-        .link-box a {
-            color: #3498db;
-            text-decoration: none;
-            font-weight: bold;
-            font-size: 16px;
-        }
-        .link-box a:hover {
-            text-decoration: underline;
-        }
-        ul {
-            line-height: 1.8;
-        }
-        .status-badge {
-            display: inline-block;
-            padding: 5px 10px;
+            background: #f5f5f5;
+            padding: 10px;
             border-radius: 3px;
-            font-size: 12px;
-            font-weight: bold;
-            margin-left: 10px;
-        }
-        .status-ok {
-            background: #27ae60;
-            color: white;
-        }
-        .status-error {
-            background: #e74c3c;
-            color: white;
+            overflow-x: auto;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>🔍 Swagger API 验证工具</h1>
-        <p class="subtitle">验证 Swagger UI 配置是否正确，所有接口是否可见</p>
+    <h1>Swagger API 测试</h1>
+    
+    <div class="test-section">
+        <h2>测试 1: 获取 Swagger JSON</h2>
+        <button onclick="testSwaggerJson()">运行测试</button>
+        <div id="swagger-json-result"></div>
     </div>
 
     <div class="test-section">
-        <h2>📋 快速访问</h2>
-        <div class="link-box">
-            <p>🌐 Swagger UI: <a href="http://localhost:3000/api-docs" target="_blank">http://localhost:3000/api-docs</a></p>
-        </div>
-        <div class="link-box">
-            <p>📄 Swagger JSON: <a href="http://localhost:3000/api-docs.json" target="_blank">http://localhost:3000/api-docs.json</a></p>
-        </div>
-        <div class="link-box">
-            <p>🏠 管理界面: <a href="http://localhost:3000/admin" target="_blank">http://localhost:3000/admin</a></p>
-        </div>
-    </div>
-
-    <div class="test-section">
-        <h2>🧪 自动化测试</h2>
-        <button onclick="runAllTests()">运行所有测试</button>
-        <button onclick="testSwaggerJson()">测试 Swagger JSON</button>
-        <button onclick="testApiPaths()">测试 API 路径</button>
-        <button onclick="testTags()">测试标签</button>
-        <div id="test-results" style="margin-top: 20px;"></div>
-    </div>
-
-    <div class="test-section">
-        <h2>✅ 预期结果</h2>
-        <p>在 Swagger UI 中应该能看到以下内容：</p>
+        <h2>测试 2: 检查 Swagger UI</h2>
+        <p>请访问: <a href="http://localhost:3000/api-docs" target="_blank">http://localhost:3000/api-docs</a></p>
+        <p>应该能看到以下标签：</p>
         <ul>
-            <li><strong>Domains</strong> 标签 - 域名配置管理接口
-                <ul>
-                    <li>GET /api/v1/domains - 获取域名列表或通过 URL 查询配置</li>
-                    <li>POST /api/v1/domains - 创建域名（需要认证）</li>
-                    <li>GET /api/v1/domains/{domain} - 通过域名获取配置</li>
-                    <li>GET /api/v1/domains/{id} - 通过 ID 获取域名</li>
-                    <li>PUT /api/v1/domains/{id} - 更新域名（需要认证）</li>
-                    <li>DELETE /api/v1/domains/{id} - 删除域名（需要认证）</li>
-                </ul>
-            </li>
-            <li><strong>Configs</strong> 标签 - 配置内容管理接口
-                <ul>
-                    <li>GET /api/v1/configs - 获取配置列表</li>
-                    <li>POST /api/v1/configs - 创建配置（需要认证）</li>
-                    <li>GET /api/v1/configs/{id} - 通过 ID 获取配置</li>
-                    <li>PUT /api/v1/configs/{id} - 更新配置（需要认证）</li>
-                    <li>DELETE /api/v1/configs/{id} - 删除配置（需要认证）</li>
-                </ul>
-            </li>
-            <li><strong>Admin</strong> 标签 - 管理界面接口</li>
-            <li><strong>Health</strong> 标签 - 健康检查和监控接口</li>
+            <li>Domains - 域名配置管理接口</li>
+            <li>Configs - 配置内容管理接口</li>
+            <li>Admin - 管理界面接口</li>
         </ul>
     </div>
 
     <script>
         async function testSwaggerJson() {
-            const resultDiv = document.getElementById('test-results');
-            resultDiv.innerHTML = '<p>⏳ 正在测试 Swagger JSON...</p>';
+            const resultDiv = document.getElementById('swagger-json-result');
+            resultDiv.innerHTML = '<p>正在测试...</p>';
             
             try {
-                const response = await fetch('http://localhost:3000/api-docs.json');
+                const response = await fetch('http://localhost:3000/api-docs/swagger.json');
                 const data = await response.json();
+                
+                // 检查是否有路径定义
+                const paths = Object.keys(data.paths || {});
+                const tags = (data.tags || []).map(t => t.name);
                 
                 let html = '<div class="success">';
-                html += '<p>✅ Swagger JSON 获取成功</p>';
-                html += `<p>API 标题: ${data.info.title}</p>`;
-                html += `<p>API 版本: ${data.info.version}</p>`;
-                html += '</div>';
-                
-                resultDiv.innerHTML = html;
-                return data;
-            } catch (error) {
-                resultDiv.innerHTML = `<div class="error"><p>❌ 测试失败: ${error.message}</p></div>`;
-                throw error;
-            }
-        }
-
-        async function testApiPaths() {
-            const resultDiv = document.getElementById('test-results');
-            resultDiv.innerHTML = '<p>⏳ 正在测试 API 路径...</p>';
-            
-            try {
-                const response = await fetch('http://localhost:3000/api-docs.json');
-                const data = await response.json();
-                
-                const paths = Object.keys(data.paths || {}).filter(p => p.startsWith('/api'));
-                const expectedPaths = [
-                    '/api/v1/domains',
-                    '/api/v1/domains/{domain}',
-                    '/api/v1/domains/{id}',
-                    '/api/v1/domains/{id}',
-                    '/api/v1/configs',
-                    '/api/v1/configs/{id}'
-                ];
-                
-                let html = '<div>';
-                html += `<p>找到 ${paths.length} 个 API 路径 <span class="status-badge status-ok">OK</span></p>`;
-                html += '<h3>路径列表:</h3><ul>';
-                
+                html += '<p>✓ Swagger JSON 获取成功</p>';
+                html += `<p>找到 ${paths.length} 个 API 路径</p>`;
+                html += `<p>找到 ${tags.length} 个标签: ${tags.join(', ')}</p>`;
+                html += '<h3>API 路径列表:</h3>';
+                html += '<ul>';
                 paths.forEach(path => {
                     const methods = Object.keys(data.paths[path]);
-                    const isExpected = expectedPaths.includes(path);
-                    const badge = isExpected ? '<span class="status-badge status-ok">✓</span>' : '<span class="status-badge status-error">?</span>';
-                    html += `<li><strong>${path}</strong>: ${methods.join(', ').toUpperCase()} ${badge}</li>`;
-                });
-                
-                html += '</ul></div>';
-                resultDiv.innerHTML = html;
-                return paths;
-            } catch (error) {
-                resultDiv.innerHTML = `<div class="error"><p>❌ 测试失败: ${error.message}</p></div>`;
-                throw error;
-            }
-        }
-
-        async function testTags() {
-            const resultDiv = document.getElementById('test-results');
-            resultDiv.innerHTML = '<p>⏳ 正在测试标签...</p>';
-            
-            try {
-                const response = await fetch('http://localhost:3000/api-docs.json');
-                const data = await response.json();
-                
-                const tags = data.tags || [];
-                const expectedTags = ['Domains', 'Configs', 'Admin', 'Health'];
-                
-                let html = '<div>';
-                html += `<p>找到 ${tags.length} 个标签 <span class="status-badge status-ok">OK</span></p>`;
-                html += '<h3>标签列表:</h3><ul>';
-                
-                tags.forEach(tag => {
-                    const isExpected = expectedTags.includes(tag.name);
-                    const badge = isExpected ? '<span class="status-badge status-ok">✓</span>' : '<span class="status-badge status-error">?</span>';
-                    html += `<li><strong>${tag.name}</strong>: ${tag.description} ${badge}</li>`;
-                });
-                
-                html += '</ul></div>';
-                resultDiv.innerHTML = html;
-                return tags;
-            } catch (error) {
-                resultDiv.innerHTML = `<div class="error"><p>❌ 测试失败: ${error.message}</p></div>`;
-                throw error;
-            }
-        }
-
-        async function runAllTests() {
-            const resultDiv = document.getElementById('test-results');
-            resultDiv.innerHTML = '<p>⏳ 正在运行所有测试...</p>';
-            
-            try {
-                const response = await fetch('http://localhost:3000/api-docs.json');
-                const data = await response.json();
-                
-                // 统计信息
-                const paths = Object.keys(data.paths || {}).filter(p => p.startsWith('/api'));
-                const tags = data.tags || [];
-                
-                // 检查每个路径的方法
-                let totalMethods = 0;
-                let methodsByPath = {};
-                paths.forEach(path => {
-                    const methods = Object.keys(data.paths[path]);
-                    methodsByPath[path] = methods;
-                    totalMethods += methods.length;
-                });
-                
-                let html = '<div class="success">';
-                html += '<h3>📊 测试结果汇总</h3>';
-                html += `<p>✅ API 标题: ${data.info.title}</p>`;
-                html += `<p>✅ API 版本: ${data.info.version}</p>`;
-                html += `<p>✅ 找到 ${tags.length} 个标签</p>`;
-                html += `<p>✅ 找到 ${paths.length} 个 API 路径</p>`;
-                html += `<p>✅ 总共 ${totalMethods} 个 API 方法</p>`;
-                
-                html += '<h3>📋 标签详情:</h3><ul>';
-                tags.forEach(tag => {
-                    html += `<li><strong>${tag.name}</strong>: ${tag.description}</li>`;
+                    html += `<li><strong>${path}</strong>: ${methods.join(', ').toUpperCase()}</li>`;
                 });
                 html += '</ul>';
-                
-                html += '<h3>🔗 API 路径详情:</h3><ul>';
-                paths.forEach(path => {
-                    const methods = methodsByPath[path];
-                    html += `<li><strong>${path}</strong><br/>`;
-                    methods.forEach(method => {
-                        const endpoint = data.paths[path][method];
-                        html += `&nbsp;&nbsp;• ${method.toUpperCase()}: ${endpoint.summary || '无描述'}<br/>`;
-                    });
-                    html += '</li>';
-                });
-                html += '</ul>';
-                
-                html += '<h3>🎉 结论:</h3>';
-                html += '<p style="font-size: 18px; color: #27ae60; font-weight: bold;">所有测试通过！Swagger UI 配置正确。</p>';
-                html += '<p>请访问 <a href="http://localhost:3000/api-docs" target="_blank">http://localhost:3000/api-docs</a> 查看完整的 API 文档。</p>';
+                html += '<h3>完整 JSON:</h3>';
+                html += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
                 html += '</div>';
                 
                 resultDiv.innerHTML = html;
             } catch (error) {
-                resultDiv.innerHTML = `<div class="error"><p>❌ 测试失败: ${error.message}</p></div>`;
+                resultDiv.innerHTML = `<div class="error"><p>✗ 测试失败: ${error.message}</p></div>`;
             }
         }
-
-        // 页面加载时自动运行测试
-        window.addEventListener('load', () => {
-            setTimeout(runAllTests, 500);
-        });
     </script>
 </body>
 </html>

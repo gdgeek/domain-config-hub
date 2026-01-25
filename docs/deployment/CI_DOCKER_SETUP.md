@@ -1,4 +1,4 @@
-# CI Docker 发布配置指南
+-# CI Docker 发布配置指南
 
 ## 📦 Docker 镜像发布
 

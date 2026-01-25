@@ -106,7 +106,7 @@ README.md                              # 项目主文档
 src/config/env.ts                      # 添加 adminPassword 配置
 src/models/Domain.ts                   # 添加 permissions 字段
 src/validation/schemas.ts              # 添加 permissions 验证
-domain.sql                             # 更新表结构
+migrations/domain.sql                  # 更新表结构
 ```
 
 ## 🎯 使用流程
@@ -326,7 +326,7 @@ location /admin.html {
 
 如有问题，请查看：
 1. [管理界面使用指南](./ADMIN_UI_GUIDE.md)
-2. [权限配置指南](./PERMISSIONS_GUIDE.md)
+2. [权限配置指南](./architecture/PERMISSIONS_GUIDE.md)
 3. [数据库迁移指南](../migrations/README.md)
 4. [项目 README](../README.md)
 
