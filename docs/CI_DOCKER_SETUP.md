@@ -27,8 +27,8 @@ GitHub 仓库 → Settings → Secrets and variables → Actions
 
 ### 2. 添加以下 Secrets
 
-#### TENCENT_REGISTRY_USERNAME
-- **名称**: `TENCENT_REGISTRY_USERNAME`
+#### TENCENT_DOCKER_USERNAME
+- **名称**: `TENCENT_DOCKER_USERNAME`
 - **值**: 腾讯云容器镜像服务的用户名
 - **获取方式**: 
   1. 登录腾讯云控制台
@@ -36,14 +36,25 @@ GitHub 仓库 → Settings → Secrets and variables → Actions
   3. 访问令牌管理
   4. 查看或创建访问令牌
 
-#### TENCENT_REGISTRY_PASSWORD
-- **名称**: `TENCENT_REGISTRY_PASSWORD`
+#### TENCENT_DOCKER_PASSWORD
+- **名称**: `TENCENT_DOCKER_PASSWORD`
 - **值**: 腾讯云容器镜像服务的密码/令牌
 - **获取方式**: 
   1. 登录腾讯云控制台
   2. 进入容器镜像服务
   3. 访问令牌管理
   4. 查看或创建访问令牌
+
+#### PORTAINER_WEBHOOK_URL
+- **名称**: `PORTAINER_WEBHOOK_URL`
+- **值**: Portainer Webhook URL
+- **获取方式**: 
+  1. 登录 Portainer
+  2. 进入 Stacks 或 Services
+  3. 找到对应的服务
+  4. 创建或查看 Webhook URL
+- **格式**: `https://your-portainer-domain/api/webhooks/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
+- **说明**: 镜像推送成功后会自动触发此 Webhook，用于自动部署更新
 
 ---
 
@@ -69,7 +80,9 @@ graph LR
     C -->|Yes| D[Build Docker Image]
     C -->|No| E[Fail]
     D --> F[Push to Registry]
-    F --> G[Success]
+    F --> G[Trigger Portainer Webhook]
+    G --> H[Auto Deploy]
+    H --> I[Success]
 ```
 
 ### 详细步骤
@@ -91,6 +104,7 @@ graph LR
    - 构建 Docker 镜像
    - 推送到镜像仓库
    - 生成多个标签
+   - 触发 Portainer Webhook 自动部署
 
 ---
 
@@ -143,6 +157,45 @@ services:
 
 ---
 
+## � 自动部署
+
+### Portainer Webhook
+
+镜像推送成功后，CI 会自动触发 Portainer Webhook，实现自动部署。
+
+#### 配置 Portainer Webhook
+
+1. **在 Portainer 中创建 Webhook**
+   ```
+   Portainer → Stacks/Services → 选择服务 → Webhooks → Add webhook
+   ```
+
+2. **复制 Webhook URL**
+   ```
+   https://your-portainer-domain/api/webhooks/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+   ```
+
+3. **添加到 GitHub Secrets**
+   - 名称: `PORTAINER_WEBHOOK_URL`
+   - 值: 复制的 Webhook URL
+
+#### Webhook 工作流程
+
+1. CI 构建并推送镜像到腾讯云
+2. 推送成功后触发 Portainer Webhook
+3. Portainer 自动拉取最新镜像
+4. Portainer 重启服务使用新镜像
+5. 部署完成
+
+#### 手动触发 Webhook
+
+也可以手动触发 Webhook 进行部署：
+```bash
+curl -X POST https://your-portainer-domain/api/webhooks/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+```
+
+---
+
 ## 🔍 查看构建状态
 
 ### GitHub Actions
@@ -189,3 +242,4 @@ https://github.com/gdgeek/domain-config-hub/actions
 ## 🔄 更新记录
 
 - 2026-01-25: 初始配置，支持推送到腾讯云容器镜像服务
+- 2026-01-25: 添加 Portainer Webhook 自动部署功能
