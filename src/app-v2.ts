@@ -50,6 +50,16 @@ export function createApp(): Express {
   app.use(`${config.apiPrefix}/configs`, configRoutes);
 
   // ============================================================
+  // 静态文件服务（管理界面）
+  // ============================================================
+  app.use('/admin', express.static('public'));
+  
+  // 管理界面路由
+  app.get('/admin', (_req: Request, res: Response) => {
+    res.sendFile('admin-v2.html', { root: 'public' });
+  });
+
+  // ============================================================
   // API 文档
   // ============================================================
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
