@@ -1,5 +1,9 @@
 # 域名配置服务 (Domain Configuration Service)
 
+[![CI](https://github.com/gdgeek/domain-config-hub/workflows/CI/badge.svg)](https://github.com/gdgeek/domain-config-hub/actions)
+[![Docker](https://img.shields.io/badge/docker-hkccr.ccs.tencentyun.com%2Fgdgeek%2Fdomain-blue)](https://hkccr.ccs.tencentyun.com)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 一个基于 Node.js + TypeScript 的域名配置管理服务，采用双表架构（domains + configs），提供完整的 CRUD API 和 Web 管理界面。
 
 ## ✨ 特性
@@ -13,7 +17,24 @@
 - 📊 **监控指标**: Prometheus 格式的监控数据
 - 📝 **API 文档**: Swagger/OpenAPI 文档
 - 🔒 **安全防护**: 限流、错误处理、日志记录
-- 🐳 **Docker 支持**: 容器化部署
+- 🐳 **Docker 支持**: 容器化部署，自动发布到腾讯云
+
+## 🐳 Docker 镜像
+
+```bash
+# 拉取最新镜像
+docker pull hkccr.ccs.tencentyun.com/gdgeek/domain:latest
+
+# 运行容器
+docker run -d \
+  --name domain-config \
+  -p 3000:3000 \
+  -e DB_HOST=your-db-host \
+  -e DB_NAME=your-db-name \
+  -e DB_USER=your-db-user \
+  -e DB_PASSWORD=your-db-password \
+  hkccr.ccs.tencentyun.com/gdgeek/domain:latest
+```
 
 ## 🏗️ 架构说明
 
