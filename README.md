@@ -183,7 +183,7 @@ GET /api/v1/domains/:domain
 
 3. **通过 ID 查询**
 ```http
-GET /api/v1/domains/id/:id
+GET /api/v1/domains/:id
 ```
 
 4. **创建域名**

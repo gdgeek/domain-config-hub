@@ -66,7 +66,7 @@
 #### DomainV2Routes (`src/routes/DomainV2Routes.ts`)
 - ✅ GET /api/v2/domains - 获取域名列表
 - ✅ GET /api/v2/domains/:domain - 通过域名获取
-- ✅ GET /api/v2/domains/id/:id - 通过 ID 获取
+- ✅ GET /api/v2/domains/:id - 通过 ID 获取
 - ✅ POST /api/v2/domains - 创建域名
 - ✅ PUT /api/v2/domains/:id - 更新域名
 - ✅ DELETE /api/v2/domains/:id - 删除域名

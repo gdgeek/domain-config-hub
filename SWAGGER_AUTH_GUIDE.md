@@ -99,7 +99,7 @@ curl -X POST http://localhost:3000/api/v1/auth/login \
 
 - `GET /api/v1/domains` - 获取域名列表
 - `GET /api/v1/domains/{domain}` - 通过域名获取配置
-- `GET /api/v1/domains/id/{id}` - 通过 ID 获取域名
+- `GET /api/v1/domains/{id}` - 通过 ID 获取域名
 - `GET /api/v1/configs` - 获取配置列表
 - `GET /api/v1/configs/{id}` - 获取配置详情
 - `GET /health` - 健康检查

@@ -84,7 +84,7 @@ Response:
 
 #### 当前（不标准）
 ```bash
-GET /api/v1/domains/id/123
+GET /api/v1/domains/123
 ```
 
 #### 改进后（标准）

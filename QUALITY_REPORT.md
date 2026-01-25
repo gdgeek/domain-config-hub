@@ -138,7 +138,7 @@ src/
 
 - `GET /api/v1/domains` - 查询域名列表
 - `GET /api/v1/domains/:domain` - 通过域名查询
-- `GET /api/v1/domains/id/:id` - 通过 ID 查询
+- `GET /api/v1/domains/:id` - 通过 ID 查询
 - `POST /api/v1/domains` - 创建域名
 - `PUT /api/v1/domains/:id` - 更新域名
 - `DELETE /api/v1/domains/:id` - 删除域名

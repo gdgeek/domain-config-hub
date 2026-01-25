@@ -43,7 +43,7 @@
 #### 1. 路径参数冲突
 ```
 ❌ GET /api/v1/domains/{domain}      # 域名字符串
-❌ GET /api/v1/domains/id/{id}       # 数字 ID
+❌ GET /api/v1/domains/{id}       # 数字 ID
 ```
 
 **问题**: 

@@ -336,7 +336,7 @@ interface DomainService {
 // API 端点定义
 // GET    /api/v1/domains           - 获取域名配置列表（分页）
 // GET    /api/v1/domains/:domain   - 通过域名获取配置
-// GET    /api/v1/domains/id/:id    - 通过 ID 获取配置
+// GET    /api/v1/domains/:id    - 通过 ID 获取配置
 // POST   /api/v1/domains           - 创建域名配置
 // PUT    /api/v1/domains/:id       - 更新域名配置
 // DELETE /api/v1/domains/:id       - 删除域名配置

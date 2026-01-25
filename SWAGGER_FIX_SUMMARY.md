@@ -64,7 +64,7 @@ $ curl -s http://localhost:3000/api-docs.json | jq '.paths | keys'
   "/api/v1/configs",
   "/api/v1/configs/{id}",
   "/api/v1/domains",
-  "/api/v1/domains/id/{id}",
+  "/api/v1/domains/{id}",
   "/api/v1/domains/{domain}",
   "/api/v1/domains/{id}"
 ]

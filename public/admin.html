@@ -363,20 +363,18 @@
                 });
                 if (response.ok) {
                     const data = await response.json();
-                    authToken = data.token || password;
+                    authToken = data.token;
                     localStorage.setItem('adminToken', authToken);
                     showMainContainer();
                     loadConfigs();
                     loadDomains();
                 } else {
-                    showLoginError('密码错误');
+                    const errorData = await response.json().catch(() => ({}));
+                    showLoginError(errorData.error?.message || '密码错误');
                 }
             } catch (error) {
-                authToken = password;
-                localStorage.setItem('adminToken', authToken);
-                showMainContainer();
-                loadConfigs();
-                loadDomains();
+                console.error('登录失败:', error);
+                showLoginError('登录失败，请检查网络连接');
             }
         });
 
@@ -511,12 +509,15 @@
         }
 
         function renderDomainTable(domains) {
+            console.log('renderDomainTable 接收到的域名数据:', domains);
             const tbody = document.getElementById('domainTableBody');
             if (domains.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px;">暂无数据</td></tr>';
                 return;
             }
-            tbody.innerHTML = domains.map(d => `
+            tbody.innerHTML = domains.map(d => {
+                console.log('渲染域名:', d.id, d.domain, 'ID类型:', typeof d.id);
+                return `
                 <tr>
                     <td>${d.id}</td>
                     <td><strong>${d.domain}</strong></td>
@@ -529,7 +530,8 @@
                         <button class="btn btn-danger btn-small" onclick="deleteDomain(${d.id}, '${d.domain}')">删除</button>
                     </td>
                 </tr>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function searchDomains() {
@@ -660,17 +662,34 @@
         async function editDomain(id) {
             await loadConfigsForSelect();
             try {
+                console.log('正在加载域名 ID:', id);
                 const response = await fetch(`/api/v1/domains/${id}`, {
                     headers: { 'Authorization': `Bearer ${authToken}`, 'Accept': 'application/json' }
                 });
+                console.log('响应状态:', response.status);
+                console.log('响应 Content-Type:', response.headers.get('content-type'));
+                
                 if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('错误响应:', errorText);
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
+                
                 const result = await response.json();
+                console.log('API 返回的完整数据:', JSON.stringify(result, null, 2));
+                
                 if (!result.data) {
+                    console.error('result.data 为空或 undefined');
                     throw new Error('服务器返回的数据格式不正确');
                 }
+                
                 const domain = result.data;
+                console.log('解析的域名对象:', domain);
+                console.log('域名 ID:', domain.id);
+                console.log('域名:', domain.domain);
+                console.log('主页:', domain.homepage);
+                console.log('配置 ID:', domain.configId);
+                
                 document.getElementById('domainModalTitle').textContent = '编辑域名';
                 document.getElementById('domainId').value = domain.id;
                 document.getElementById('domainName').value = domain.domain;
@@ -679,6 +698,7 @@
                 document.getElementById('domainConfigId').value = domain.configId;
                 document.getElementById('domainModal').classList.add('active');
             } catch (error) {
+                console.error('editDomain 错误:', error);
                 showAlert('domainAlert', '加载域名失败: ' + error.message, 'error');
             }
         }

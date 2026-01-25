@@ -143,7 +143,7 @@
                     <li>GET /api/v1/domains - 获取域名列表或通过 URL 查询配置</li>
                     <li>POST /api/v1/domains - 创建域名（需要认证）</li>
                     <li>GET /api/v1/domains/{domain} - 通过域名获取配置</li>
-                    <li>GET /api/v1/domains/id/{id} - 通过 ID 获取域名</li>
+                    <li>GET /api/v1/domains/{id} - 通过 ID 获取域名</li>
                     <li>PUT /api/v1/domains/{id} - 更新域名（需要认证）</li>
                     <li>DELETE /api/v1/domains/{id} - 删除域名（需要认证）</li>
                 </ul>
@@ -197,7 +197,7 @@
                 const expectedPaths = [
                     '/api/v1/domains',
                     '/api/v1/domains/{domain}',
-                    '/api/v1/domains/id/{id}',
+                    '/api/v1/domains/{id}',
                     '/api/v1/domains/{id}',
                     '/api/v1/configs',
                     '/api/v1/configs/{id}'

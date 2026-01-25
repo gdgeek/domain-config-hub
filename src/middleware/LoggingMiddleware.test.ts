@@ -244,7 +244,7 @@ describe('LoggingMiddleware', () => {
       const urls = [
         '/api/v1/domains',
         '/api/v1/domains/example.com',
-        '/api/v1/domains/id/123',
+        '/api/v1/domains/123',
         '/health',
         '/metrics',
       ];

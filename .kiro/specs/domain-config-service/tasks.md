@@ -166,7 +166,7 @@
   - [x] 8.3 实现 Domain 路由 (src/routes/DomainRoutes.ts)
     - GET /api/v1/domains - 列表查询
     - GET /api/v1/domains/:domain - 域名查询
-    - GET /api/v1/domains/id/:id - ID 查询
+    - GET /api/v1/domains/:id - ID 查询
     - POST /api/v1/domains - 创建
     - PUT /api/v1/domains/:id - 更新
     - DELETE /api/v1/domains/:id - 删除

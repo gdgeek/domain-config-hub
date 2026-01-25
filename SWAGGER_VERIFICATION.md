@@ -58,7 +58,7 @@ $ curl -s http://localhost:3000/api-docs.json | jq '.paths | keys'
   "/api/v1/configs",
   "/api/v1/configs/{id}",
   "/api/v1/domains",
-  "/api/v1/domains/id/{id}",
+  "/api/v1/domains/{id}",
   "/api/v1/domains/{domain}",
   "/api/v1/domains/{id}"
 ]
@@ -184,7 +184,7 @@ curl -X POST http://localhost:3000/api/v1/auth/login \
 | GET | `/api/v1/domains` | 获取域名列表或通过 URL 查询配置 | ❌ |
 | POST | `/api/v1/domains` | 创建域名 | ✅ |
 | GET | `/api/v1/domains/{domain}` | 通过域名获取配置 | ❌ |
-| GET | `/api/v1/domains/id/{id}` | 通过 ID 获取域名 | ❌ |
+| GET | `/api/v1/domains/{id}` | 通过 ID 获取域名 | ❌ |
 | PUT | `/api/v1/domains/{id}` | 更新域名 | ✅ |
 | DELETE | `/api/v1/domains/{id}` | 删除域名 | ✅ |
 

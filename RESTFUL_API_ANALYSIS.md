@@ -39,7 +39,7 @@
 **当前设计**:
 ```
 GET /api/v1/domains/{domain}     # 通过域名字符串获取
-GET /api/v1/domains/id/{id}      # 通过 ID 获取
+GET /api/v1/domains/{id}      # 通过 ID 获取
 PUT /api/v1/domains/{id}         # 通过 ID 更新
 DELETE /api/v1/domains/{id}      # 通过 ID 删除
 ```
@@ -122,7 +122,7 @@ POST /api/v1/token         # 获取令牌
 **修改前**:
 ```
 GET /api/v1/domains/{domain}     # 通过域名获取
-GET /api/v1/domains/id/{id}      # 通过 ID 获取
+GET /api/v1/domains/{id}      # 通过 ID 获取
 ```
 
 **修改后**:

@@ -13,7 +13,7 @@
 #### 问题
 ```
 GET /api/v1/domains/{domain}     # 域名字符串
-GET /api/v1/domains/id/{id}      # 数字 ID
+GET /api/v1/domains/{id}      # 数字 ID
 ```
 当域名是 "id" 时会产生冲突。
 
@@ -106,7 +106,7 @@ router.get(
 ```typescript
 /**
  * @deprecated 使用 GET /api/v1/domains/{id} 代替
- * GET /api/v1/domains/id/{id}
+ * GET /api/v1/domains/{id}
  */
 router.get(
   '/id/:id',

@@ -27,6 +27,7 @@ export interface DomainInput {
 export interface DomainOutput {
   id: number;
   domain: string;
+  homepage?: string | null;
   configId: number;
   config?: {
     id: number;
@@ -329,6 +330,7 @@ export class DomainService {
     const output: DomainOutput = {
       id: domain.id,
       domain: domain.domain,
+      homepage: domain.homepage,
       configId: domain.configId,
       createdAt: domain.createdAt,
       updatedAt: domain.updatedAt,

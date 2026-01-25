@@ -13,7 +13,7 @@
 **改造前**:
 ```
 GET /api/v1/domains/{domain}     # 域名字符串（冲突）
-GET /api/v1/domains/id/{id}      # 数字 ID（不标准）
+GET /api/v1/domains/{id}      # 数字 ID（不标准）
 ```
 
 **改造后**:
@@ -182,7 +182,7 @@ const config = result.data[0]; // 现在返回列表格式
 
 **旧代码**:
 ```javascript
-const response = await fetch('/api/v1/domains/id/123');
+const response = await fetch('/api/v1/domains/123');
 ```
 
 **新代码**:
