@@ -1,316 +1,163 @@
 /**
  * DomainRoutes 单元测试
- * 
- * 测试域名配置路由的各个端点
  */
 
 import request from 'supertest';
-import express, { Express } from 'express';
-import { createDomainRoutes } from './DomainRoutes';
-import { IDomainService, DomainOutput, PaginatedResult } from '../services/DomainService';
+import express, { Application } from 'express';
+import domainRoutes from './DomainRoutes';
+import domainService from '../services/DomainService';
 import { errorHandler } from '../middleware/ErrorMiddleware';
-import { ConflictError } from '../errors/ConflictError';
+
+jest.mock('../services/DomainService');
 
 describe('DomainRoutes', () => {
-  let app: Express;
-  let mockDomainService: jest.Mocked<IDomainService>;
-
-  // 测试数据
-  const mockDomain: DomainOutput = {
-    id: 1,
-    domain: 'example.com',
-    title: 'Example Site',
-    author: 'John Doe',
-    description: 'A test site',
-    keywords: 'test, example',
-    links: { home: 'https://example.com' },
-  };
+  let app: Application;
 
   beforeEach(() => {
-    // 创建 mock service
-    mockDomainService = {
-      create: jest.fn(),
-      getById: jest.fn(),
-      getByDomain: jest.fn(),
-      list: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-    };
-
-    // 创建 Express 应用
     app = express();
     app.use(express.json());
-    app.use('/api/v1/domains', createDomainRoutes(mockDomainService));
+    app.use('/api/v1/domains', domainRoutes);
     app.use(errorHandler);
+    jest.clearAllMocks();
   });
 
-  describe('GET /api/v1/domains', () => {
-    it('应该返回分页的域名配置列表', async () => {
-      const mockResult: PaginatedResult<DomainOutput> = {
-        data: [mockDomain],
-        pagination: {
-          page: 1,
-          pageSize: 20,
-          total: 1,
-          totalPages: 1,
-        },
+  describe('GET /', () => {
+    it('应该返回域名列表', async () => {
+      const mockResult = {
+        data: [{ id: 1, domain: 'test.com' }],
+        pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
       };
+      (domainService.list as jest.Mock).mockResolvedValue(mockResult);
 
-      mockDomainService.list.mockResolvedValue(mockResult);
+      const response = await request(app).get('/api/v1/domains');
 
-      const response = await request(app)
-        .get('/api/v1/domains')
-        .expect(200);
-
+      expect(response.status).toBe(200);
       expect(response.body).toEqual(mockResult);
-      expect(mockDomainService.list).toHaveBeenCalledWith({
-        page: 1,
-        pageSize: 20,
-      });
     });
 
-    it('应该支持自定义分页参数', async () => {
-      const mockResult: PaginatedResult<DomainOutput> = {
-        data: [mockDomain],
-        pagination: {
-          page: 2,
-          pageSize: 10,
-          total: 15,
-          totalPages: 2,
-        },
+    it('应该通过 domain 参数查询域名（返回单个对象）', async () => {
+      const mockResult = { 
+        domain: 'test.com', 
+        config: { title: 'Test Config', author: 'Test' }
       };
+      (domainService.getByDomain as jest.Mock).mockResolvedValue(mockResult);
 
-      mockDomainService.list.mockResolvedValue(mockResult);
+      const response = await request(app).get('/api/v1/domains?domain=test.com');
 
-      const response = await request(app)
-        .get('/api/v1/domains?page=2&pageSize=10')
-        .expect(200);
-
-      expect(response.body).toEqual(mockResult);
-      expect(mockDomainService.list).toHaveBeenCalledWith({
-        page: 2,
-        pageSize: 10,
-      });
+      expect(response.status).toBe(200);
+      expect(response.body.data).toEqual(mockResult);
+      expect(response.body.pagination).toBeUndefined();
     });
 
-    it('应该拒绝无效的分页参数', async () => {
-      const response = await request(app)
-        .get('/api/v1/domains?page=0&pageSize=200')
-        .expect(400);
+    it('域名不存在时应返回 404', async () => {
+      (domainService.getByDomain as jest.Mock).mockResolvedValue(null);
 
-      expect(response.body.error.code).toBe('VALIDATION_ERROR');
-      expect(mockDomainService.list).not.toHaveBeenCalled();
+      const response = await request(app).get('/api/v1/domains?domain=notfound.com');
+
+      expect(response.status).toBe(404);
+      expect(response.body.error.code).toBe('DOMAIN_NOT_FOUND');
     });
   });
 
-  describe('GET /api/v1/domains/:domain', () => {
-    it('应该通过域名返回配置', async () => {
-      mockDomainService.getByDomain.mockResolvedValue(mockDomain);
+  describe('GET /:id', () => {
+    it('应该通过 ID 返回域名详情', async () => {
+      const mockDomain = { id: 1, domain: 'test.com' };
+      (domainService.getById as jest.Mock).mockResolvedValue(mockDomain);
 
-      const response = await request(app)
-        .get('/api/v1/domains/example.com')
-        .expect(200);
+      const response = await request(app).get('/api/v1/domains/1');
 
-      expect(response.body).toEqual({ data: mockDomain });
-      expect(mockDomainService.getByDomain).toHaveBeenCalledWith('example.com');
+      expect(response.status).toBe(200);
+      expect(response.body.data).toEqual(mockDomain);
     });
 
-    it('应该在域名不存在时返回 404', async () => {
-      mockDomainService.getByDomain.mockResolvedValue(null);
+    it('域名不存在时应返回 404', async () => {
+      (domainService.getById as jest.Mock).mockResolvedValue(null);
 
-      const response = await request(app)
-        .get('/api/v1/domains/nonexistent.com')
-        .expect(404);
+      const response = await request(app).get('/api/v1/domains/999');
 
-      expect(response.body.error.code).toBe('NOT_FOUND');
-      expect(response.body.error.message).toContain('nonexistent.com');
+      expect(response.status).toBe(404);
     });
   });
 
-  describe('GET /api/v1/domains/id/:id', () => {
-    it('应该通过 ID 返回配置', async () => {
-      mockDomainService.getById.mockResolvedValue(mockDomain);
+  describe('POST /', () => {
+    it('应该创建域名', async () => {
+      const mockDomain = { id: 1, domain: 'test.com', configId: 1 };
+      (domainService.create as jest.Mock).mockResolvedValue(mockDomain);
 
       const response = await request(app)
-        .get('/api/v1/domains/id/1')
-        .expect(200);
+        .post('/api/v1/domains')
+        .send({ domain: 'test.com', configId: 1 });
 
-      expect(response.body).toEqual({ data: mockDomain });
-      expect(mockDomainService.getById).toHaveBeenCalledWith(1);
-    });
-
-    it('应该在 ID 不存在时返回 404', async () => {
-      mockDomainService.getById.mockResolvedValue(null);
-
-      const response = await request(app)
-        .get('/api/v1/domains/id/999')
-        .expect(404);
-
-      expect(response.body.error.code).toBe('NOT_FOUND');
-      expect(response.body.error.message).toContain('999');
-    });
-
-    it('应该拒绝无效的 ID', async () => {
-      const response = await request(app)
-        .get('/api/v1/domains/id/invalid')
-        .expect(400);
-
-      expect(response.body.error.code).toBe('VALIDATION_ERROR');
-      expect(mockDomainService.getById).not.toHaveBeenCalled();
+      expect(response.status).toBe(201);
+      expect(response.body.data).toEqual(mockDomain);
     });
   });
 
-  describe('POST /api/v1/domains', () => {
-    it('应该创建新的域名配置', async () => {
-      const input = {
-        domain: 'example.com',
-        title: 'Example Site',
-        author: 'John Doe',
-      };
-
-      mockDomainService.create.mockResolvedValue(mockDomain);
-
-      const response = await request(app)
-        .post('/api/v1/domains')
-        .send(input)
-        .expect(201);
-
-      expect(response.body).toEqual({ data: mockDomain });
-      expect(mockDomainService.create).toHaveBeenCalledWith(input);
-    });
-
-    it('应该在域名已存在时返回 409', async () => {
-      const input = {
-        domain: 'example.com',
-        title: 'Example Site',
-      };
-
-      mockDomainService.create.mockRejectedValue(
-        new ConflictError('域名已存在', 'DUPLICATE_DOMAIN')
-      );
-
-      const response = await request(app)
-        .post('/api/v1/domains')
-        .send(input)
-        .expect(409);
-
-      expect(response.body.error.code).toBe('DUPLICATE_DOMAIN');
-    });
-
-    it('应该拒绝缺少必需字段的请求', async () => {
-      const response = await request(app)
-        .post('/api/v1/domains')
-        .send({ title: 'Example Site' })
-        .expect(400);
-
-      expect(response.body.error.code).toBe('VALIDATION_ERROR');
-      expect(mockDomainService.create).not.toHaveBeenCalled();
-    });
-
-    it('应该拒绝超长字段', async () => {
-      const input = {
-        domain: 'example.com',
-        title: 'a'.repeat(256), // 超过 255 字符
-      };
-
-      const response = await request(app)
-        .post('/api/v1/domains')
-        .send(input)
-        .expect(400);
-
-      expect(response.body.error.code).toBe('VALIDATION_ERROR');
-      expect(mockDomainService.create).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('PUT /api/v1/domains/:id', () => {
-    it('应该更新域名配置', async () => {
-      const input = {
-        title: 'Updated Title',
-        author: 'Jane Doe',
-      };
-
-      const updatedDomain = { ...mockDomain, ...input };
-      mockDomainService.update.mockResolvedValue(updatedDomain);
+  describe('PUT /:id', () => {
+    it('应该完全更新域名', async () => {
+      const mockDomain = { id: 1, domain: 'test.com', configId: 2 };
+      (domainService.update as jest.Mock).mockResolvedValue(mockDomain);
 
       const response = await request(app)
         .put('/api/v1/domains/1')
-        .send(input)
-        .expect(200);
+        .send({ configId: 2 });
 
-      expect(response.body).toEqual({ data: updatedDomain });
-      expect(mockDomainService.update).toHaveBeenCalledWith(1, input);
+      expect(response.status).toBe(200);
+      expect(response.body.data).toEqual(mockDomain);
     });
 
-    it('应该在 ID 不存在时返回 404', async () => {
-      mockDomainService.update.mockResolvedValue(null);
+    it('域名不存在时应返回 404', async () => {
+      (domainService.update as jest.Mock).mockResolvedValue(null);
 
       const response = await request(app)
         .put('/api/v1/domains/999')
-        .send({ title: 'Updated Title' })
-        .expect(404);
+        .send({ configId: 2 });
 
-      expect(response.body.error.code).toBe('NOT_FOUND');
-    });
-
-    it('应该拒绝无效的更新数据', async () => {
-      const input = {
-        title: 'a'.repeat(256), // 超过 255 字符
-      };
-
-      const response = await request(app)
-        .put('/api/v1/domains/1')
-        .send(input)
-        .expect(400);
-
-      expect(response.body.error.code).toBe('VALIDATION_ERROR');
-      expect(mockDomainService.update).not.toHaveBeenCalled();
+      expect(response.status).toBe(404);
     });
   });
 
-  describe('DELETE /api/v1/domains/:id', () => {
-    it('应该删除域名配置', async () => {
-      mockDomainService.delete.mockResolvedValue(true);
+  describe('PATCH /:id', () => {
+    it('应该部分更新域名', async () => {
+      const mockDomain = { id: 1, domain: 'test.com', homepage: 'https://new.com' };
+      (domainService.update as jest.Mock).mockResolvedValue(mockDomain);
 
       const response = await request(app)
-        .delete('/api/v1/domains/1')
-        .expect(200);
+        .patch('/api/v1/domains/1')
+        .send({ homepage: 'https://new.com' });
 
-      expect(response.body).toEqual({ message: '域名配置已删除' });
-      expect(mockDomainService.delete).toHaveBeenCalledWith(1);
+      expect(response.status).toBe(200);
+      expect(response.body.data).toEqual(mockDomain);
     });
 
-    it('应该在 ID 不存在时返回 404', async () => {
-      mockDomainService.delete.mockResolvedValue(false);
-
+    it('没有提供更新字段时应返回 400', async () => {
       const response = await request(app)
-        .delete('/api/v1/domains/999')
-        .expect(404);
+        .patch('/api/v1/domains/1')
+        .send({});
 
-      expect(response.body.error.code).toBe('NOT_FOUND');
-    });
-
-    it('应该拒绝无效的 ID', async () => {
-      const response = await request(app)
-        .delete('/api/v1/domains/invalid')
-        .expect(400);
-
+      expect(response.status).toBe(400);
       expect(response.body.error.code).toBe('VALIDATION_ERROR');
-      expect(mockDomainService.delete).not.toHaveBeenCalled();
+    });
+
+    it('域名不存在时应返回 404', async () => {
+      (domainService.update as jest.Mock).mockResolvedValue(null);
+
+      const response = await request(app)
+        .patch('/api/v1/domains/999')
+        .send({ homepage: 'https://new.com' });
+
+      expect(response.status).toBe(404);
     });
   });
 
-  describe('错误处理', () => {
-    it('应该处理服务层抛出的错误', async () => {
-      mockDomainService.getByDomain.mockRejectedValue(
-        new Error('Database connection failed')
-      );
+  describe('DELETE /:id', () => {
+    it('应该删除域名并返回 204', async () => {
+      (domainService.delete as jest.Mock).mockResolvedValue(undefined);
 
-      const response = await request(app)
-        .get('/api/v1/domains/example.com')
-        .expect(500);
+      const response = await request(app).delete('/api/v1/domains/1');
 
-      expect(response.body.error.code).toBe('INTERNAL_ERROR');
+      expect(response.status).toBe(204);
+      expect(response.body).toEqual({});
     });
   });
 });

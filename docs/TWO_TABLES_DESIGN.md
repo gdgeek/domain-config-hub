@@ -309,7 +309,7 @@ SELECT
 ```
 
 4. **更新应用代码**
-   - 使用新的模型 (Config, DomainV2)
+   - 使用新的模型 (Config, Domain)
    - 使用新的 Repository 和 Service
    - 更新路由
 

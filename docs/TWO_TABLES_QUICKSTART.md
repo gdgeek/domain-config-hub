@@ -42,7 +42,7 @@ mysql -u root -p domain_config -e "SELECT COUNT(*) FROM domains; SELECT COUNT(*)
 
 ```bash
 # 1. 创建一个配置
-curl -X POST http://localhost:3000/api/v2/configs \
+curl -X POST http://localhost:3000/api/v1/configs \
   -H "Content-Type: application/json" \
   -d '{
     "title": "我的网站",
@@ -55,15 +55,15 @@ curl -X POST http://localhost:3000/api/v2/configs \
 # 返回: {"data": {"id": 1, "title": "我的网站", ...}}
 
 # 2. 创建多个域名，都指向这个配置
-curl -X POST http://localhost:3000/api/v2/domains \
+curl -X POST http://localhost:3000/api/v1/domains \
   -H "Content-Type: application/json" \
   -d '{"domain": "example.com", "configId": 1}'
 
-curl -X POST http://localhost:3000/api/v2/domains \
+curl -X POST http://localhost:3000/api/v1/domains \
   -H "Content-Type: application/json" \
   -d '{"domain": "example.org", "configId": 1}'
 
-curl -X POST http://localhost:3000/api/v2/domains \
+curl -X POST http://localhost:3000/api/v1/domains \
   -H "Content-Type: application/json" \
   -d '{"domain": "example.net", "configId": 1}'
 ```
@@ -72,7 +72,7 @@ curl -X POST http://localhost:3000/api/v2/domains \
 
 ```bash
 # 通过域名查询（返回域名+配置）
-curl http://localhost:3000/api/v2/domains/example.com
+curl http://localhost:3000/api/v1/domains/example.com
 
 # 返回:
 # {
@@ -94,14 +94,14 @@ curl http://localhost:3000/api/v2/domains/example.com
 
 ```bash
 # 更新配置
-curl -X PUT http://localhost:3000/api/v2/configs/1 \
+curl -X PUT http://localhost:3000/api/v1/configs/1 \
   -H "Content-Type: application/json" \
   -d '{"title": "更新后的网站标题"}'
 
 # 现在访问任意关联的域名都会看到更新后的配置
-curl http://localhost:3000/api/v2/domains/example.com
-curl http://localhost:3000/api/v2/domains/example.org
-curl http://localhost:3000/api/v2/domains/example.net
+curl http://localhost:3000/api/v1/domains/example.com
+curl http://localhost:3000/api/v1/domains/example.org
+curl http://localhost:3000/api/v1/domains/example.net
 # 所有域名都返回更新后的标题
 ```
 
@@ -109,7 +109,7 @@ curl http://localhost:3000/api/v2/domains/example.net
 
 ```bash
 # 获取配置详情（包含关联的域名列表）
-curl http://localhost:3000/api/v2/configs/1
+curl http://localhost:3000/api/v1/configs/1
 
 # 返回:
 # {
@@ -129,19 +129,19 @@ curl http://localhost:3000/api/v2/configs/1
 
 ```bash
 # 创建另一个配置
-curl -X POST http://localhost:3000/api/v2/configs \
+curl -X POST http://localhost:3000/api/v1/configs \
   -H "Content-Type: application/json" \
   -d '{"title": "另一个配置", "author": "李四"}'
 
 # 返回: {"data": {"id": 2, ...}}
 
 # 将域名切换到新配置
-curl -X PUT http://localhost:3000/api/v2/domains/1 \
+curl -X PUT http://localhost:3000/api/v1/domains/1 \
   -H "Content-Type: application/json" \
   -d '{"configId": 2}'
 
 # 现在 example.com 使用新配置
-curl http://localhost:3000/api/v2/domains/example.com
+curl http://localhost:3000/api/v1/domains/example.com
 ```
 
 ## API 端点对比
@@ -156,22 +156,22 @@ PUT    /api/v1/domains/:id       # 更新域名配置
 DELETE /api/v1/domains/:id       # 删除域名配置
 ```
 
-### 新版 API (v2) - 双表设计
+### 新版 API - 双表设计
 
 ```
 # 配置管理
-GET    /api/v2/configs           # 获取配置列表
-GET    /api/v2/configs/:id       # 获取配置详情（含关联域名）
-POST   /api/v2/configs           # 创建配置
-PUT    /api/v2/configs/:id       # 更新配置
-DELETE /api/v2/configs/:id       # 删除配置（需要先删除关联域名）
+GET    /api/v1/configs           # 获取配置列表
+GET    /api/v1/configs/:id       # 获取配置详情（含关联域名）
+POST   /api/v1/configs           # 创建配置
+PUT    /api/v1/configs/:id       # 更新配置
+DELETE /api/v1/configs/:id       # 删除配置（需要先删除关联域名）
 
 # 域名管理
-GET    /api/v2/domains           # 获取域名列表（含配置）
-GET    /api/v2/domains/:domain   # 通过域名获取（含配置）
-POST   /api/v2/domains           # 创建域名（指定 configId）
-PUT    /api/v2/domains/:id       # 更新域名（可更改 configId）
-DELETE /api/v2/domains/:id       # 删除域名
+GET    /api/v1/domains           # 获取域名列表（含配置）
+GET    /api/v1/domains/:domain   # 通过域名获取（含配置）
+POST   /api/v1/domains           # 创建域名（指定 configId）
+PUT    /api/v1/domains/:id       # 更新域名（可更改 configId）
+DELETE /api/v1/domains/:id       # 删除域名
 ```
 
 ## 代码示例
@@ -181,7 +181,7 @@ DELETE /api/v2/domains/:id       # 删除域名
 ```javascript
 const axios = require('axios');
 
-const API_BASE = 'http://localhost:3000/api/v2';
+const API_BASE = 'http://localhost:3000/api/v1';
 
 // 创建配置
 async function createConfig() {
@@ -233,7 +233,7 @@ main();
 ```python
 import requests
 
-API_BASE = 'http://localhost:3000/api/v2'
+API_BASE = 'http://localhost:3000/api/v1'
 
 # 创建配置
 def create_config():

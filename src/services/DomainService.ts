@@ -1,44 +1,44 @@
 /**
  * DomainService
  * 
- * 业务逻辑层，负责处理域名配置的业务规则和数据转换
- * 协调 Repository 和 Cache 层的操作
- * 
- * 需求: 1.1, 2.1, 2.2, 2.3, 2.4, 3.1, 3.2, 3.3, 3.5, 3.7
+ * 域名业务逻辑层
+ * 处理域名相关的业务逻辑，支持配置关联
  */
 
-import { Domain } from '../models/Domain';
-import { IDomainRepository, Pagination } from '../repositories/DomainRepository';
-import { ICacheService } from './CacheService';
+import { DomainRepository } from '../repositories/DomainRepository';
+import { ConfigRepository } from '../repositories/ConfigRepository';
+import { DomainAttributes } from '../models/Domain';
 import { ConflictError } from '../errors/ConflictError';
-import { DatabaseError } from '../errors/DatabaseError';
+import { NotFoundError } from '../errors/NotFoundError';
 import { logger } from '../config/logger';
 
 /**
- * 域名配置输入接口
- * 用于创建和更新操作
+ * 域名输入接口
  */
 export interface DomainInput {
   domain: string;
-  title?: string | null;
-  author?: string | null;
-  description?: string | null;
-  keywords?: string | null;
-  links?: object | null;
+  configId: number;
+  homepage?: string | null;
 }
 
 /**
- * 域名配置输出接口
- * 用于返回给客户端的数据格式
+ * 域名输出接口
  */
 export interface DomainOutput {
   id: number;
   domain: string;
-  title: string | null;
-  author: string | null;
-  description: string | null;
-  keywords: string | null;
-  links: object | null;
+  configId: number;
+  config?: {
+    id: number;
+    title: string | null;
+    author: string | null;
+    description: string | null;
+    keywords: string | null;
+    links: object | null;
+    permissions: object | null;
+  };
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 /**
@@ -55,279 +55,303 @@ export interface PaginatedResult<T> {
 }
 
 /**
- * DomainService 接口
+ * 分页参数接口
  */
-export interface IDomainService {
-  create(input: DomainInput): Promise<DomainOutput>;
-  getById(id: number): Promise<DomainOutput | null>;
-  getByDomain(domain: string): Promise<DomainOutput | null>;
-  list(pagination: Pagination): Promise<PaginatedResult<DomainOutput>>;
-  update(id: number, input: Partial<DomainInput>): Promise<DomainOutput | null>;
-  delete(id: number): Promise<boolean>;
+export interface Pagination {
+  page: number;
+  pageSize: number;
 }
 
 /**
- * DomainService 实现类
- * 
- * 提供域名配置的业务逻辑处理
- * 包含缓存管理、数据转换和业务规则验证
+ * DomainService 类
  */
-export class DomainService implements IDomainService {
+export class DomainService {
   constructor(
-    private readonly repository: IDomainRepository,
-    private readonly cache: ICacheService
+    private domainRepository: DomainRepository,
+    private configRepository: ConfigRepository
   ) {}
 
   /**
-   * 将 Domain 实体转换为输出格式
-   * 
-   * @param domain - Domain 实体
-   * @returns DomainOutput 对象
+   * 创建域名
    */
-  private toOutput(domain: Domain): DomainOutput {
+  async create(input: DomainInput): Promise<DomainOutput> {
+    logger.info('创建域名', { input });
+
+    // 检查域名是否已存在
+    const existing = await this.domainRepository.findByDomain(input.domain);
+    if (existing) {
+      throw new ConflictError('域名已存在', 'DOMAIN_ALREADY_EXISTS');
+    }
+
+    // 检查配置是否存在
+    const config = await this.configRepository.findById(input.configId);
+    if (!config) {
+      throw new NotFoundError('配置不存在', 'CONFIG_NOT_FOUND');
+    }
+
+    const domain = await this.domainRepository.create(input);
+    
+    // 重新加载以包含关联的配置
+    const domainWithConfig = await this.domainRepository.findById(domain.id);
+    return this.toOutput(domainWithConfig!);
+  }
+
+  /**
+   * 通过 ID 获取域名
+   */
+  async getById(id: number): Promise<DomainOutput | null> {
+    logger.info('查询域名', { id });
+
+    const domain = await this.domainRepository.findById(id);
+    if (!domain) {
+      return null;
+    }
+
+    return this.toOutput(domain);
+  }
+
+  /**
+   * 从 URL 或域名字符串中提取纯域名
+   * 例如：
+   * - https://www.baidu.com/a/v -> www.baidu.com
+   * - www.baidu.com -> www.baidu.com
+   * - baidu.com -> baidu.com
+   */
+  private extractDomain(input: string): string {
+    let domain = input.trim().toLowerCase();
+    
+    // 移除协议（http://, https://）
+    domain = domain.replace(/^https?:\/\//i, '');
+    
+    // 移除路径、查询参数和锚点
+    domain = domain.split('/')[0];
+    domain = domain.split('?')[0];
+    domain = domain.split('#')[0];
+    
+    // 移除端口号
+    domain = domain.split(':')[0];
+    
+    return domain;
+  }
+
+  /**
+   * 从完整域名中提取根域名
+   * 例如：
+   * - www.baidu.com -> baidu.com
+   * - abc.baidu.com -> baidu.com
+   * - baidu.com -> baidu.com
+   * - www.abc.baidu.com -> baidu.com
+   */
+  private extractRootDomain(domain: string): string {
+    const parts = domain.split('.');
+    
+    // 如果只有一个部分，直接返回
+    if (parts.length <= 1) {
+      return domain;
+    }
+    
+    // 如果有两个部分，直接返回（已经是根域名）
+    if (parts.length === 2) {
+      return domain;
+    }
+    
+    // 如果有三个或更多部分，返回最后两个部分
+    // 例如：www.baidu.com -> baidu.com
+    // 例如：abc.def.baidu.com -> baidu.com
+    return parts.slice(-2).join('.');
+  }
+
+  /**
+   * 通过域名获取（支持智能匹配）
+   * 
+   * 匹配逻辑：
+   * 1. 首先尝试精确匹配输入的域名
+   * 2. 如果没找到，提取根域名再次查询
+   * 
+   * 示例：
+   * - 数据库中有 baidu.com
+   * - 查询 www.baidu.com -> 匹配到 baidu.com
+   * - 查询 abc.baidu.com -> 匹配到 baidu.com
+   * - 查询 https://www.baidu.com/a/v -> 匹配到 baidu.com
+   * 
+   * @returns 返回域名信息 + config 数据
+   */
+  async getByDomain(input: string): Promise<any | null> {
+    // 提取纯域名（移除协议、路径等）
+    const cleanDomain = this.extractDomain(input);
+    
+    logger.info('通过域名查询', { 
+      originalInput: input,
+      cleanDomain,
+    });
+
+    // 1. 首先尝试精确匹配
+    let domainRecord = await this.domainRepository.findByDomain(cleanDomain);
+    
+    if (domainRecord) {
+      logger.info('精确匹配成功', { domain: cleanDomain });
+      return this.formatDomainResponse(domainRecord);
+    }
+
+    // 2. 如果精确匹配失败，尝试匹配根域名
+    const rootDomain = this.extractRootDomain(cleanDomain);
+    
+    // 如果根域名和清理后的域名相同，说明已经是根域名了，不需要再查询
+    if (rootDomain === cleanDomain) {
+      logger.info('域名不存在', { domain: cleanDomain });
+      return null;
+    }
+    
+    logger.info('尝试根域名匹配', { 
+      cleanDomain,
+      rootDomain,
+    });
+    
+    domainRecord = await this.domainRepository.findByDomain(rootDomain);
+    
+    if (domainRecord) {
+      logger.info('根域名匹配成功', { 
+        inputDomain: cleanDomain,
+        matchedDomain: rootDomain,
+      });
+      return this.formatDomainResponse(domainRecord);
+    }
+
+    logger.info('域名不存在', { 
+      cleanDomain,
+      rootDomain,
+    });
+    return null;
+  }
+
+  /**
+   * 格式化域名响应，返回域名信息 + config 数据（嵌套结构）
+   */
+  private formatDomainResponse(domainRecord: any): any {
+    if (!domainRecord) {
+      return null;
+    }
+
+    // 如果是 Sequelize 实例，转换为纯对象
+    const plainDomain = domainRecord.get ? domainRecord.get({ plain: true }) : domainRecord;
+    
+    // 提取 config 并清理
+    const config = plainDomain.config ? this.sanitizeConfig(plainDomain.config) : null;
+    
+    // 返回嵌套结构
     return {
-      id: domain.id,
-      domain: domain.domain,
-      title: domain.title,
-      author: domain.author,
-      description: domain.description,
-      keywords: domain.keywords,
-      links: domain.links,
+      domain: plainDomain.domain,
+      homepage: plainDomain.homepage || null,
+      config: config,
     };
   }
 
   /**
-   * 创建新的域名配置
-   * 
-   * 需求 3.1: WHEN 创建新的域名配置时提供有效数据 THEN Domain_Config_Service SHALL 在数据库中创建记录并返回创建的配置
-   * 需求 3.2: WHEN 创建域名配置时域名已存在 THEN Domain_Config_Service SHALL 返回 409 冲突状态码
-   * 
-   * @param input - 域名配置输入数据
-   * @returns 创建的域名配置
-   * @throws ConflictError - 域名已存在时抛出
-   * @throws DatabaseError - 数据库操作失败时抛出
+   * 清理 config 对象，移除时间戳和 ID 字段
    */
-  async create(input: DomainInput): Promise<DomainOutput> {
-    try {
-      // 检查域名是否已存在
-      const existing = await this.repository.findByDomain(input.domain);
-      if (existing) {
-        logger.warn('尝试创建已存在的域名配置', { domain: input.domain });
-        throw new ConflictError(`域名 '${input.domain}' 已存在`, 'DUPLICATE_DOMAIN');
-      }
-
-      // 创建域名配置
-      const domain = await this.repository.create(input);
-      
-      logger.info('域名配置创建成功', { id: domain.id, domain: domain.domain });
-      
-      return this.toOutput(domain);
-    } catch (error) {
-      // 如果是已知错误类型，直接抛出
-      if (error instanceof ConflictError || error instanceof DatabaseError) {
-        throw error;
-      }
-      
-      // 处理数据库唯一约束冲突（Repository 可能抛出的 DatabaseError）
-      if (error instanceof DatabaseError && error.code === 'DUPLICATE_DOMAIN') {
-        throw new ConflictError(`域名 '${input.domain}' 已存在`, 'DUPLICATE_DOMAIN');
-      }
-      
-      // 其他未知错误
-      logger.error('创建域名配置失败', { error, input });
-      throw new DatabaseError('创建域名配置失败', 'DATABASE_ERROR');
+  private sanitizeConfig(config: any): any {
+    if (!config) {
+      return null;
     }
+
+    // 如果是 Sequelize 实例，转换为纯对象
+    const plainConfig = config.get ? config.get({ plain: true }) : config;
+
+    // 创建新对象，排除 id, createdAt 和 updatedAt
+    const { id, createdAt, updatedAt, ...cleanConfig } = plainConfig;
+    return cleanConfig;
   }
 
   /**
-   * 通过 ID 获取域名配置
-   * 
-   * 需求 1.1: WHEN 调用者请求一个存在的域名配置 THEN Domain_Config_Service SHALL 返回该域名的完整配置信息
-   * 需求 1.2: WHEN 调用者请求一个不存在的域名配置 THEN Domain_Config_Service SHALL 返回 404 状态码
-   * 
-   * @param id - 域名配置 ID
-   * @returns 域名配置或 null（不存在时）
-   * @throws DatabaseError - 数据库操作失败时抛出
-   */
-  async getById(id: number): Promise<DomainOutput | null> {
-    try {
-      const domain = await this.repository.findById(id);
-      
-      if (!domain) {
-        logger.debug('域名配置不存在', { id });
-        return null;
-      }
-      
-      return this.toOutput(domain);
-    } catch (error) {
-      logger.error('查询域名配置失败', { error, id });
-      throw error;
-    }
-  }
-
-  /**
-   * 通过域名获取配置（含缓存逻辑）
-   * 
-   * 需求 1.1: WHEN 调用者请求一个存在的域名配置 THEN Domain_Config_Service SHALL 返回该域名的完整配置信息
-   * 需求 1.2: WHEN 调用者请求一个不存在的域名配置 THEN Domain_Config_Service SHALL 返回 404 状态码
-   * 需求 2.1: WHERE Redis 缓存已启用，WHEN 查询域名配置 THEN Cache_Layer SHALL 首先检查缓存是否存在该域名的配置
-   * 需求 2.2: WHERE Redis 缓存已启用，WHEN 缓存命中 THEN Domain_Config_Service SHALL 直接返回缓存数据而不查询数据库
-   * 需求 2.3: WHERE Redis 缓存已启用，WHEN 缓存未命中 THEN Domain_Config_Service SHALL 查询数据库并将结果存入缓存
-   * 
-   * @param domain - 域名
-   * @returns 域名配置或 null（不存在时）
-   * @throws DatabaseError - 数据库操作失败时抛出
-   */
-  async getByDomain(domain: string): Promise<DomainOutput | null> {
-    try {
-      // 尝试从缓存获取
-      const cached = await this.cache.get<DomainOutput>(domain);
-      if (cached) {
-        logger.debug('从缓存返回域名配置', { domain });
-        return cached;
-      }
-
-      // 缓存未命中，从数据库查询
-      const domainEntity = await this.repository.findByDomain(domain);
-      
-      if (!domainEntity) {
-        logger.debug('域名配置不存在', { domain });
-        return null;
-      }
-      
-      const output = this.toOutput(domainEntity);
-      
-      // 存入缓存
-      await this.cache.set(domain, output);
-      
-      logger.debug('从数据库返回域名配置并缓存', { domain });
-      return output;
-    } catch (error) {
-      logger.error('查询域名配置失败', { error, domain });
-      throw error;
-    }
-  }
-
-  /**
-   * 获取域名配置列表（分页）
-   * 
-   * 需求 3.7: WHEN 查询域名配置列表 THEN Domain_Config_Service SHALL 支持分页参数（page、pageSize）
-   * 
-   * @param pagination - 分页参数
-   * @returns 分页结果
-   * @throws DatabaseError - 数据库操作失败时抛出
+   * 获取域名列表（分页）
    */
   async list(pagination: Pagination): Promise<PaginatedResult<DomainOutput>> {
-    try {
-      // 并行查询数据和总数
-      const [domains, total] = await Promise.all([
-        this.repository.findAll(pagination),
-        this.repository.count(),
-      ]);
+    logger.info('查询域名列表', { pagination });
 
-      // 转换为输出格式
-      const data = domains.map(domain => this.toOutput(domain));
+    const [domains, total] = await Promise.all([
+      this.domainRepository.findAll(pagination),
+      this.domainRepository.count(),
+    ]);
 
-      // 计算总页数
-      const totalPages = Math.ceil(total / pagination.pageSize);
+    const totalPages = Math.ceil(total / pagination.pageSize);
 
-      logger.debug('查询域名配置列表成功', {
+    return {
+      data: domains.map(domain => this.toOutput(domain)),
+      pagination: {
         page: pagination.page,
         pageSize: pagination.pageSize,
         total,
         totalPages,
-      });
-
-      return {
-        data,
-        pagination: {
-          page: pagination.page,
-          pageSize: pagination.pageSize,
-          total,
-          totalPages,
-        },
-      };
-    } catch (error) {
-      logger.error('查询域名配置列表失败', { error, pagination });
-      throw error;
-    }
+      },
+    };
   }
 
   /**
-   * 更新域名配置（含缓存失效）
-   * 
-   * 需求 3.3: WHEN 更新域名配置时提供有效数据 THEN Domain_Config_Service SHALL 更新数据库记录并返回更新后的配置
-   * 需求 3.4: WHEN 更新不存在的域名配置 THEN Domain_Config_Service SHALL 返回 404 状态码
-   * 需求 2.4: WHERE Redis 缓存已启用，WHEN 域名配置被更新或删除 THEN Cache_Layer SHALL 使该域名的缓存失效
-   * 
-   * @param id - 域名配置 ID
-   * @param input - 要更新的数据
-   * @returns 更新后的域名配置或 null（不存在时）
-   * @throws DatabaseError - 数据库操作失败时抛出
+   * 更新域名
    */
   async update(id: number, input: Partial<DomainInput>): Promise<DomainOutput | null> {
-    try {
-      // 更新数据库
-      const domain = await this.repository.update(id, input);
-      
-      if (!domain) {
-        logger.debug('域名配置不存在，无法更新', { id });
-        return null;
-      }
+    logger.info('更新域名', { id, input });
 
-      // 使缓存失效
-      await this.cache.delete(domain.domain);
-      
-      logger.info('域名配置更新成功', { id, domain: domain.domain });
-      
-      return this.toOutput(domain);
-    } catch (error) {
-      logger.error('更新域名配置失败', { error, id, input });
-      throw error;
+    // 如果要更新 configId，检查配置是否存在
+    if (input.configId !== undefined) {
+      const config = await this.configRepository.findById(input.configId);
+      if (!config) {
+        throw new NotFoundError('配置不存在', 'CONFIG_NOT_FOUND');
+      }
     }
+
+    const domain = await this.domainRepository.update(id, input);
+    if (!domain) {
+      return null;
+    }
+
+    return this.toOutput(domain);
   }
 
   /**
-   * 删除域名配置（含缓存失效）
-   * 
-   * 需求 3.5: WHEN 删除域名配置 THEN Domain_Config_Service SHALL 从数据库中移除记录并返回成功响应
-   * 需求 3.6: WHEN 删除不存在的域名配置 THEN Domain_Config_Service SHALL 返回 404 状态码
-   * 需求 2.4: WHERE Redis 缓存已启用，WHEN 域名配置被更新或删除 THEN Cache_Layer SHALL 使该域名的缓存失效
-   * 
-   * @param id - 域名配置 ID
-   * @returns true（删除成功）或 false（不存在）
-   * @throws DatabaseError - 数据库操作失败时抛出
+   * 删除域名
    */
   async delete(id: number): Promise<boolean> {
-    try {
-      // 先查询域名配置以获取域名（用于缓存失效）
-      const domain = await this.repository.findById(id);
-      
-      if (!domain) {
-        logger.debug('域名配置不存在，无法删除', { id });
-        return false;
-      }
+    logger.info('删除域名', { id });
 
-      // 删除数据库记录
-      const deleted = await this.repository.delete(id);
-      
-      if (deleted) {
-        // 使缓存失效
-        await this.cache.delete(domain.domain);
-        
-        logger.info('域名配置删除成功', { id, domain: domain.domain });
-      }
-      
-      return deleted;
-    } catch (error) {
-      logger.error('删除域名配置失败', { error, id });
-      throw error;
+    const deleted = await this.domainRepository.delete(id);
+    if (!deleted) {
+      throw new NotFoundError('域名不存在', 'DOMAIN_NOT_FOUND');
     }
+
+    return true;
+  }
+
+  /**
+   * 将 Domain 模型转换为输出格式
+   */
+  private toOutput(domain: DomainAttributes): DomainOutput {
+    const output: DomainOutput = {
+      id: domain.id,
+      domain: domain.domain,
+      configId: domain.configId,
+      createdAt: domain.createdAt,
+      updatedAt: domain.updatedAt,
+    };
+
+    // 如果包含关联的配置，添加到输出
+    if (domain.config) {
+      output.config = {
+        id: domain.config.id,
+        title: domain.config.title,
+        author: domain.config.author,
+        description: domain.config.description,
+        keywords: domain.config.keywords,
+        links: domain.config.links,
+        permissions: domain.config.permissions,
+      };
+    }
+
+    return output;
   }
 }
 
-/**
- * 导出默认实例
- * 注意：实际使用时应通过依赖注入传入 repository 和 cache
- */
-export default DomainService;
+export default new DomainService(
+  require('../repositories/DomainRepository').default,
+  require('../repositories/ConfigRepository').default
+);

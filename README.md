@@ -1,10 +1,11 @@
 # 域名配置服务 (Domain Configuration Service)
 
-一个基于 Node.js + TypeScript 的域名配置管理服务，提供完整的 CRUD API 和 Web 管理界面。
+一个基于 Node.js + TypeScript 的域名配置管理服务，采用双表架构（domains + configs），提供完整的 CRUD API 和 Web 管理界面。
 
 ## ✨ 特性
 
-- 🚀 **RESTful API**: 完整的域名配置 CRUD 接口
+- 🚀 **RESTful API**: 完整的域名和配置 CRUD 接口
+- 🏗️ **双表架构**: 域名表和配置表分离，支持多域名共享配置
 - 🎨 **Web 管理界面**: 简洁美观的管理后台
 - 🔐 **权限管理**: 灵活的 JSON 权限配置系统
 - 💾 **数据持久化**: MySQL 数据库存储
@@ -13,6 +14,18 @@
 - 📝 **API 文档**: Swagger/OpenAPI 文档
 - 🔒 **安全防护**: 限流、错误处理、日志记录
 - 🐳 **Docker 支持**: 容器化部署
+
+## 🏗️ 架构说明
+
+本服务采用**双表架构**设计:
+
+- **domains 表**: 存储域名信息，每个域名关联一个配置
+- **configs 表**: 存储配置内容（title、author、description、keywords、links、permissions 等）
+
+这种设计的优势:
+- ✅ 多个域名可以共享同一个配置
+- ✅ 配置更新时，所有关联域名自动生效
+- ✅ 更灵活的数据管理和维护
 
 ## 📋 目录
 
@@ -92,12 +105,19 @@ npm start
 
 ### 核心功能
 
-1. **域名配置管理**
-   - 创建、查询、更新、删除域名配置
+1. **域名管理**
+   - 创建、查询、更新、删除域名
    - 支持分页查询
    - 支持按域名和 ID 查询
+   - 域名与配置关联管理
 
-2. **权限配置**
+2. **配置管理**
+   - 创建、查询、更新、删除配置
+   - 支持分页查询
+   - 一个配置可被多个域名共享
+   - 配置包含: title、author、description、keywords、links、permissions
+
+3. **权限配置**
    - 灵活的 JSON 权限结构
    - 支持基础权限（读、写、管理）
    - 支持功能开关（评论、上传、API 访问等）
@@ -126,35 +146,77 @@ npm start
 - **Base URL**: `/api/v1`
 - **Content-Type**: `application/json`
 
-### 端点列表
+### API 端点
 
-#### 1. 查询域名列表
+#### 域名管理 API
 
+1. **查询域名列表**
 ```http
 GET /api/v1/domains?page=1&pageSize=20
 ```
 
-#### 2. 通过域名查询
-
+2. **通过域名查询**
 ```http
 GET /api/v1/domains/:domain
 ```
 
-#### 3. 通过 ID 查询
-
+3. **通过 ID 查询**
 ```http
 GET /api/v1/domains/id/:id
 ```
 
-#### 4. 创建域名配置
-
+4. **创建域名**
 ```http
 POST /api/v1/domains
 Content-Type: application/json
 
 {
   "domain": "example.com",
+  "configId": 1
+}
+```
+
+5. **更新域名**
+```http
+PUT /api/v1/domains/:id
+Content-Type: application/json
+
+{
+  "configId": 2
+}
+```
+
+6. **删除域名**
+```http
+DELETE /api/v1/domains/:id
+```
+
+#### 配置管理 API
+
+1. **查询配置列表**
+```http
+GET /api/v1/configs?page=1&pageSize=20
+```
+
+2. **通过 ID 查询配置**
+```http
+GET /api/v1/configs/:id
+```
+
+3. **创建配置**
+```http
+POST /api/v1/configs
+Content-Type: application/json
+
+{
   "title": "Example Site",
+  "author": "John Doe",
+  "description": "This is an example website",
+  "keywords": "example, website, demo",
+  "links": {
+    "home": "https://example.com",
+    "about": "https://example.com/about"
+  },
   "permissions": {
     "read": true,
     "write": true,
@@ -163,10 +225,9 @@ Content-Type: application/json
 }
 ```
 
-#### 5. 更新域名配置
-
+4. **更新配置**
 ```http
-PUT /api/v1/domains/:id
+PUT /api/v1/configs/:id
 Content-Type: application/json
 
 {
@@ -179,10 +240,9 @@ Content-Type: application/json
 }
 ```
 
-#### 6. 删除域名配置
-
+5. **删除配置**
 ```http
-DELETE /api/v1/domains/:id
+DELETE /api/v1/configs/:id
 ```
 
 ### 完整 API 文档
@@ -214,9 +274,11 @@ ADMIN_PASSWORD=admin123
 ### 功能特性
 
 - ✅ 域名列表查看和搜索
-- ✅ 添加新域名配置
+- ✅ 配置列表查看和管理
+- ✅ 添加新域名和配置
 - ✅ 编辑现有配置
-- ✅ 删除域名配置
+- ✅ 删除域名和配置
+- ✅ 域名与配置关联管理
 - ✅ 可视化权限配置
 - ✅ JSON 高级配置编辑
 - ✅ 分页浏览
@@ -224,20 +286,41 @@ ADMIN_PASSWORD=admin123
 
 详细使用说明请查看：[管理界面使用指南](docs/ADMIN_UI_GUIDE.md)
 
-## 🗄️ 数据库迁移
+## 🗄️ 数据库架构
 
-### 快速迁移
+### 双表设计
+
+本服务使用双表架构:
+
+**domains 表**:
+- `id`: 主键
+- `domain`: 域名（唯一）
+- `config_id`: 外键，关联到 configs 表
+
+**configs 表**:
+- `id`: 主键
+- `title`: 网站标题
+- `author`: 网站作者
+- `description`: 网站描述
+- `keywords`: 网站关键词
+- `links`: 链接配置（JSON）
+- `permissions`: 权限配置（JSON）
+
+### 数据库迁移
 
 ```bash
-# 执行迁移
-./scripts/migrate.sh migrations/001_add_permissions_field.sql
+# 执行迁移到双表架构
+./scripts/migrate.sh migrations/002_split_to_two_tables.sql
 
 # 回滚迁移
-./scripts/migrate.sh --rollback migrations/rollback_001.sql
+./scripts/migrate.sh --rollback migrations/rollback_002.sql
 ```
 
 ### 详细说明
 
+- [双表架构设计文档](docs/TWO_TABLES_DESIGN.md)
+- [双表架构快速开始](docs/TWO_TABLES_QUICKSTART.md)
+- [双表架构使用指南](docs/TWO_TABLES_USAGE.md)
 - [数据库迁移快速开始](docs/DATABASE_MIGRATION_QUICKSTART.md)
 - [完整迁移指南](migrations/README.md)
 - [权限配置使用指南](docs/PERMISSIONS_GUIDE.md)

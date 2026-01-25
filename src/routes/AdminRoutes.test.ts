@@ -4,32 +4,47 @@
 
 import request from 'supertest';
 import express, { Application } from 'express';
-import adminRoutes from './AdminRoutes';
 
+// Mock 必须在导入之前
 jest.mock('../config/env', () => ({
   config: {
     adminPassword: 'test-password',
   },
 }));
 
+jest.mock('../config/logger', () => ({
+  logger: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
+
+// 不 mock generateToken，让它真实执行
+import adminRoutes from './AdminRoutes';
+
 describe('AdminRoutes', () => {
   let app: Application;
 
   beforeEach(() => {
+    jest.clearAllMocks();
     app = express();
     app.use(express.json());
     app.use('/api/v1/auth', adminRoutes);
   });
 
   describe('POST /login', () => {
-    it('应该在密码正确时返回成功', async () => {
+    it('应该在密码正确时返回成功和 JWT 令牌', async () => {
       const response = await request(app)
         .post('/api/v1/auth/login')
         .send({ password: 'test-password' });
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
-      expect(response.body.token).toBe('test-password');
+      expect(response.body.token).toBeDefined();
+      expect(typeof response.body.token).toBe('string');
+      expect(response.body.token.length).toBeGreaterThan(0);
       expect(response.body.message).toBe('登录成功');
     });
 

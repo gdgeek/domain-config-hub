@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swagger API 测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success {
+            color: green;
+        }
+        .error {
+            color: red;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Swagger API 测试</h1>
+    
+    <div class="test-section">
+        <h2>测试 1: 获取 Swagger JSON</h2>
+        <button onclick="testSwaggerJson()">运行测试</button>
+        <div id="swagger-json-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>测试 2: 检查 Swagger UI</h2>
+        <p>请访问: <a href="http://localhost:3000/api-docs" target="_blank">http://localhost:3000/api-docs</a></p>
+        <p>应该能看到以下标签：</p>
+        <ul>
+            <li>Domains - 域名配置管理接口</li>
+            <li>Configs - 配置内容管理接口</li>
+            <li>Admin - 管理界面接口</li>
+        </ul>
+    </div>
+
+    <script>
+        async function testSwaggerJson() {
+            const resultDiv = document.getElementById('swagger-json-result');
+            resultDiv.innerHTML = '<p>正在测试...</p>';
+            
+            try {
+                const response = await fetch('http://localhost:3000/api-docs/swagger.json');
+                const data = await response.json();
+                
+                // 检查是否有路径定义
+                const paths = Object.keys(data.paths || {});
+                const tags = (data.tags || []).map(t => t.name);
+                
+                let html = '<div class="success">';
+                html += '<p>✓ Swagger JSON 获取成功</p>';
+                html += `<p>找到 ${paths.length} 个 API 路径</p>`;
+                html += `<p>找到 ${tags.length} 个标签: ${tags.join(', ')}</p>`;
+                html += '<h3>API 路径列表:</h3>';
+                html += '<ul>';
+                paths.forEach(path => {
+                    const methods = Object.keys(data.paths[path]);
+                    html += `<li><strong>${path}</strong>: ${methods.join(', ').toUpperCase()}</li>`;
+                });
+                html += '</ul>';
+                html += '<h3>完整 JSON:</h3>';
+                html += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                html += '</div>';
+                
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error"><p>✗ 测试失败: ${error.message}</p></div>`;
+            }
+        }
+    </script>
+</body>
+</html>

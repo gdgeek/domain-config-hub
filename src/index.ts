@@ -16,10 +16,8 @@ import { logger, logError } from './config/logger';
 import { connectWithRetry, closeDatabase } from './config/database';
 import { connectRedis, closeRedis, isRedisEnabled } from './config/redis';
 import { createApp } from './app';
-import { DomainService } from './services/DomainService';
-import { DomainRepository } from './repositories/DomainRepository';
-import { CacheService } from './services/CacheService';
 import { Domain } from './models/Domain';
+import { Config } from './models/Config';
 
 /**
  * 优雅关闭超时时间（毫秒）
@@ -57,6 +55,7 @@ async function startApp(): Promise<void> {
     if (config.nodeEnv === 'development') {
       logger.info('正在同步数据库模型...');
       await Domain.sync({ alter: false });
+      await Config.sync({ alter: false });
       logger.info('数据库模型同步完成');
     }
 
@@ -78,19 +77,12 @@ async function startApp(): Promise<void> {
     }
 
     // ============================================================
-    // 3. 创建服务实例（依赖注入）
+    // 3. 创建 Express 应用（双表架构）
     // ============================================================
-    const domainRepository = new DomainRepository();
-    const cacheService = new CacheService();
-    const domainService = new DomainService(domainRepository, cacheService);
+    const app = createApp();
 
     // ============================================================
-    // 4. 创建 Express 应用
-    // ============================================================
-    const app = createApp(domainService);
-
-    // ============================================================
-    // 5. 创建 HTTP 服务器并启动
+    // 4. 创建 HTTP 服务器并启动
     // ============================================================
     server = http.createServer(app);
 
@@ -136,7 +128,7 @@ async function startApp(): Promise<void> {
     });
 
     // ============================================================
-    // 6. 注册优雅关闭处理器
+    // 5. 注册优雅关闭处理器
     // ============================================================
     setupGracefulShutdown();
 

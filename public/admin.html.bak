@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>域名配置管理 V2</title>
+    <title>域名配置管理系统</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -194,7 +194,7 @@
 <body>
     <!-- 登录界面 -->
     <div id="loginContainer" class="login-container">
-        <h2 style="text-align: center; margin-bottom: 30px; color: #667eea;">🔐 管理员登录 (V2)</h2>
+        <h2 style="text-align: center; margin-bottom: 30px; color: #667eea;">🔐 管理员登录</h2>
         <div id="loginAlert" class="alert alert-error"></div>
         <form id="loginForm">
             <div class="form-group">
@@ -208,9 +208,9 @@
     <!-- 主界面 -->
     <div id="mainContainer" class="container hidden">
         <div class="header">
-            <span class="version-badge">V2 双表架构</span>
+            <span class="version-badge">双表架构</span>
             <button class="btn btn-secondary btn-small logout-btn" onclick="logout()">退出登录</button>
-            <h1>🌐 域名配置管理系统 V2</h1>
+            <h1>🌐 域名配置管理系统</h1>
             <p>Domain Configuration Management System - Dual Table Architecture</p>
         </div>
         
@@ -259,6 +259,7 @@
                     <tr>
                         <th>ID</th>
                         <th>域名</th>
+                        <th>主页</th>
                         <th>配置ID</th>
                         <th>标题</th>
                         <th>作者</th>
@@ -266,7 +267,7 @@
                     </tr>
                 </thead>
                 <tbody id="domainTableBody">
-                    <tr><td colspan="6" style="text-align: center; padding: 40px;">加载中...</td></tr>
+                    <tr><td colspan="7" style="text-align: center; padding: 40px;">加载中...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -325,6 +326,11 @@
                 <div class="form-group">
                     <label>域名 *</label>
                     <input type="text" id="domainName" placeholder="example.com" required>
+                </div>
+                <div class="form-group">
+                    <label>主页 URL</label>
+                    <input type="url" id="domainHomepage" placeholder="https://example.com">
+                    <small style="color: #666; font-size: 12px;">可选，域名的主页地址</small>
                 </div>
                 <div class="form-group">
                     <label>关联配置 *</label>
@@ -412,14 +418,37 @@
         // 加载配置列表
         async function loadConfigs() {
             try {
-                const response = await fetch('/api/v1/configs', {
-                    headers: { 'Authorization': `Bearer ${authToken}` }
+                const url = '/api/v1/configs';
+                console.log('正在请求:', url);
+                console.log('完整 URL:', window.location.origin + url);
+                
+                const response = await fetch(url, {
+                    headers: { 
+                        'Authorization': `Bearer ${authToken}`,
+                        'Accept': 'application/json'
+                    },
+                    cache: 'no-cache'
                 });
+                
+                console.log('响应状态:', response.status);
+                console.log('响应 Content-Type:', response.headers.get('content-type'));
+                
+                if (!response.ok) {
+                    const text = await response.text();
+                    console.error('错误响应内容:', text.substring(0, 200));
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const data = await response.json();
                 allConfigs = data.data || [];
                 renderConfigTable(allConfigs);
             } catch (error) {
+                console.error('加载配置失败:', error);
                 showAlert('configAlert', '加载配置失败: ' + error.message, 'error');
+                // 如果是认证错误，清除 token 并重新登录
+                if (error.message.includes('401') || error.message.includes('403')) {
+                    logout();
+                }
             }
         }
 
@@ -456,27 +485,42 @@
         // 加载域名列表
         async function loadDomains() {
             try {
-                const response = await fetch('/api/v2/domains', {
-                    headers: { 'Authorization': `Bearer ${authToken}` }
+                const response = await fetch('/api/v1/domains', {
+                    headers: { 
+                        'Authorization': `Bearer ${authToken}`,
+                        'Accept': 'application/json'
+                    },
+                    cache: 'no-cache'
                 });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const data = await response.json();
                 allDomains = data.data || [];
                 renderDomainTable(allDomains);
             } catch (error) {
+                console.error('加载域名失败:', error);
                 showAlert('domainAlert', '加载域名失败: ' + error.message, 'error');
+                // 如果是认证错误，清除 token 并重新登录
+                if (error.message.includes('401') || error.message.includes('403')) {
+                    logout();
+                }
             }
         }
 
         function renderDomainTable(domains) {
             const tbody = document.getElementById('domainTableBody');
             if (domains.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px;">暂无数据</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px;">暂无数据</td></tr>';
                 return;
             }
             tbody.innerHTML = domains.map(d => `
                 <tr>
                     <td>${d.id}</td>
                     <td><strong>${d.domain}</strong></td>
+                    <td>${d.homepage ? `<a href="${d.homepage}" target="_blank" style="color: #667eea;">🔗</a>` : '-'}</td>
                     <td>${d.configId}</td>
                     <td>${d.config?.title || '-'}</td>
                     <td>${d.config?.author || '-'}</td>
@@ -533,7 +577,8 @@
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${authToken}` }
                 });
-                if (!response.ok) throw new Error('删除失败');
+                // 204 No Content 表示删除成功
+                if (!response.ok && response.status !== 204) throw new Error('删除失败');
                 showAlert('configAlert', '删除成功', 'success');
                 loadConfigs();
             } catch (error) {
@@ -615,7 +660,7 @@
         async function editDomain(id) {
             await loadConfigsForSelect();
             try {
-                const response = await fetch(`/api/v2/domains/id/${id}`, {
+                const response = await fetch(`/api/v1/domains/id/${id}`, {
                     headers: { 'Authorization': `Bearer ${authToken}` }
                 });
                 const result = await response.json();
@@ -624,6 +669,7 @@
                 document.getElementById('domainId').value = domain.id;
                 document.getElementById('domainName').value = domain.domain;
                 document.getElementById('domainName').disabled = true;
+                document.getElementById('domainHomepage').value = domain.homepage || '';
                 document.getElementById('domainConfigId').value = domain.configId;
                 document.getElementById('domainModal').classList.add('active');
             } catch (error) {
@@ -634,11 +680,12 @@
         async function deleteDomain(id, domain) {
             if (!confirm(`确定要删除域名 "${domain}" 吗？`)) return;
             try {
-                const response = await fetch(`/api/v2/domains/${id}`, {
+                const response = await fetch(`/api/v1/domains/${id}`, {
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${authToken}` }
                 });
-                if (!response.ok) throw new Error('删除失败');
+                // 204 No Content 表示删除成功
+                if (!response.ok && response.status !== 204) throw new Error('删除失败');
                 showAlert('domainAlert', '删除成功', 'success');
                 loadDomains();
             } catch (error) {
@@ -653,12 +700,14 @@
         document.getElementById('domainForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = document.getElementById('domainId').value;
+            const homepage = document.getElementById('domainHomepage').value.trim();
             const formData = {
                 domain: document.getElementById('domainName').value,
-                configId: parseInt(document.getElementById('domainConfigId').value)
+                configId: parseInt(document.getElementById('domainConfigId').value),
+                homepage: homepage || null
             };
             try {
-                const url = id ? `/api/v2/domains/${id}` : '/api/v2/domains';
+                const url = id ? `/api/v1/domains/${id}` : '/api/v1/domains';
                 const method = id ? 'PUT' : 'POST';
                 const response = await fetch(url, {
                     method,

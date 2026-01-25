@@ -6,7 +6,7 @@
  */
 
 import { ConfigRepository } from '../repositories/ConfigRepository';
-import { DomainV2Repository } from '../repositories/DomainV2Repository';
+import { DomainRepository } from '../repositories/DomainRepository';
 import { ConfigAttributes, ConfigCreationAttributes } from '../models/Config';
 import { NotFoundError } from '../errors/NotFoundError';
 import { ConflictError } from '../errors/ConflictError';
@@ -66,7 +66,7 @@ export interface Pagination {
 export class ConfigService {
   constructor(
     private configRepository: ConfigRepository,
-    private domainRepository: DomainV2Repository
+    private domainRepository: DomainRepository
   ) {}
 
   /**
@@ -184,5 +184,5 @@ export class ConfigService {
 
 export default new ConfigService(
   require('../repositories/ConfigRepository').default,
-  require('../repositories/DomainV2Repository').default
+  require('../repositories/DomainRepository').default
 );

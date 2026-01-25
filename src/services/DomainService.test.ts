@@ -1,385 +1,238 @@
 /**
  * DomainService 单元测试
- * 
- * 测试业务逻辑层的核心功能
  */
 
-import { DomainService, DomainInput, DomainOutput } from './DomainService';
-import { IDomainRepository, Pagination } from '../repositories/DomainRepository';
-import { ICacheService } from './CacheService';
-import { Domain } from '../models/Domain';
+import { DomainService } from './DomainService';
+import { DomainRepository } from '../repositories/DomainRepository';
+import { ConfigRepository } from '../repositories/ConfigRepository';
 import { ConflictError } from '../errors/ConflictError';
-import { DatabaseError } from '../errors/DatabaseError';
+import { NotFoundError } from '../errors/NotFoundError';
 
-// Mock Repository
-const mockRepository: jest.Mocked<IDomainRepository> = {
-  create: jest.fn(),
-  findById: jest.fn(),
-  findByDomain: jest.fn(),
-  findAll: jest.fn(),
-  count: jest.fn(),
-  update: jest.fn(),
-  delete: jest.fn(),
-};
-
-// Mock Cache Service
-const mockCache: jest.Mocked<ICacheService> = {
-  get: jest.fn(),
-  set: jest.fn(),
-  delete: jest.fn(),
-  isEnabled: jest.fn(),
-};
+// Mock repositories
+jest.mock('../repositories/DomainRepository');
+jest.mock('../repositories/ConfigRepository');
+jest.mock('../config/logger');
 
 describe('DomainService', () => {
-  let service: DomainService;
+  let domainService: DomainService;
+  let mockDomainRepository: jest.Mocked<DomainRepository>;
+  let mockConfigRepository: jest.Mocked<ConfigRepository>;
 
   beforeEach(() => {
-    // 重置所有 mock
+    mockDomainRepository = new DomainRepository() as jest.Mocked<DomainRepository>;
+    mockConfigRepository = new ConfigRepository() as jest.Mocked<ConfigRepository>;
+    domainService = new DomainService(mockDomainRepository, mockConfigRepository);
+  });
+
+  afterEach(() => {
     jest.clearAllMocks();
-    
-    // 创建服务实例
-    service = new DomainService(mockRepository, mockCache);
   });
 
   describe('create', () => {
-    const input: DomainInput = {
-      domain: 'example.com',
-      title: 'Example',
-      author: 'Test Author',
-      description: 'Test Description',
-      keywords: 'test, example',
-      links: { home: 'https://example.com' },
-    };
+    it('应该成功创建域名', async () => {
+      const input = {
+        domain: 'example.com',
+        configId: 1,
+      };
 
-    it('应该成功创建域名配置', async () => {
-      const mockDomain = {
+      const mockConfig = {
         id: 1,
-        ...input,
-      } as Domain;
-
-      mockRepository.findByDomain.mockResolvedValue(null);
-      mockRepository.create.mockResolvedValue(mockDomain);
-
-      const result = await service.create(input);
-
-      expect(mockRepository.findByDomain).toHaveBeenCalledWith(input.domain);
-      expect(mockRepository.create).toHaveBeenCalledWith(input);
-      expect(result).toEqual({
-        id: 1,
-        domain: input.domain,
-        title: input.title,
-        author: input.author,
-        description: input.description,
-        keywords: input.keywords,
-        links: input.links,
-      });
-    });
-
-    it('当域名已存在时应该抛出 ConflictError', async () => {
-      const existingDomain = {
-        id: 1,
-        domain: input.domain,
-        title: 'Existing',
+        title: '测试配置',
         author: null,
         description: null,
         keywords: null,
         links: null,
-      } as Domain;
+        permissions: null,
+      };
 
-      mockRepository.findByDomain.mockResolvedValue(existingDomain);
+      const mockDomain = {
+        id: 1,
+        domain: 'example.com',
+        configId: 1,
+        config: mockConfig,
+      };
 
-      await expect(service.create(input)).rejects.toThrow(ConflictError);
-      await expect(service.create(input)).rejects.toThrow(`域名 '${input.domain}' 已存在`);
-      
-      expect(mockRepository.findByDomain).toHaveBeenCalledWith(input.domain);
-      expect(mockRepository.create).not.toHaveBeenCalled();
+      mockDomainRepository.findByDomain = jest.fn().mockResolvedValue(null);
+      mockConfigRepository.findById = jest.fn().mockResolvedValue(mockConfig);
+      mockDomainRepository.create = jest.fn().mockResolvedValue({ id: 1, ...input });
+      mockDomainRepository.findById = jest.fn().mockResolvedValue(mockDomain);
+
+      const result = await domainService.create(input);
+
+      expect(result.domain).toBe('example.com');
+      expect(result.configId).toBe(1);
+      expect(result.config).toBeDefined();
+      expect(mockDomainRepository.findByDomain).toHaveBeenCalledWith('example.com');
+      expect(mockConfigRepository.findById).toHaveBeenCalledWith(1);
     });
 
-    it('当数据库操作失败时应该抛出 DatabaseError', async () => {
-      mockRepository.findByDomain.mockResolvedValue(null);
-      mockRepository.create.mockRejectedValue(new Error('Database connection failed'));
+    it('域名已存在时应该抛出 ConflictError', async () => {
+      const input = {
+        domain: 'example.com',
+        configId: 1,
+      };
 
-      await expect(service.create(input)).rejects.toThrow(DatabaseError);
-      
-      expect(mockRepository.findByDomain).toHaveBeenCalledWith(input.domain);
-      expect(mockRepository.create).toHaveBeenCalledWith(input);
+      mockDomainRepository.findByDomain = jest.fn().mockResolvedValue({ id: 1, domain: 'example.com' });
+
+      await expect(domainService.create(input)).rejects.toThrow(ConflictError);
+      expect(mockConfigRepository.findById).not.toHaveBeenCalled();
+    });
+
+    it('配置不存在时应该抛出 NotFoundError', async () => {
+      const input = {
+        domain: 'example.com',
+        configId: 999,
+      };
+
+      mockDomainRepository.findByDomain = jest.fn().mockResolvedValue(null);
+      mockConfigRepository.findById = jest.fn().mockResolvedValue(null);
+
+      await expect(domainService.create(input)).rejects.toThrow(NotFoundError);
     });
   });
 
   describe('getById', () => {
-    it('应该返回存在的域名配置', async () => {
+    it('应该返回域名及配置', async () => {
       const mockDomain = {
         id: 1,
         domain: 'example.com',
-        title: 'Example',
-        author: 'Test Author',
-        description: 'Test Description',
-        keywords: 'test',
-        links: { home: 'https://example.com' },
-      } as Domain;
+        configId: 1,
+        config: {
+          id: 1,
+          title: '测试配置',
+          author: null,
+          description: null,
+          keywords: null,
+          links: null,
+          permissions: null,
+        },
+      };
 
-      mockRepository.findById.mockResolvedValue(mockDomain);
+      mockDomainRepository.findById = jest.fn().mockResolvedValue(mockDomain);
 
-      const result = await service.getById(1);
+      const result = await domainService.getById(1);
 
-      expect(mockRepository.findById).toHaveBeenCalledWith(1);
-      expect(result).toEqual({
-        id: 1,
-        domain: 'example.com',
-        title: 'Example',
-        author: 'Test Author',
-        description: 'Test Description',
-        keywords: 'test',
-        links: { home: 'https://example.com' },
-      });
+      expect(result).toBeDefined();
+      expect(result!.domain).toBe('example.com');
+      expect(result!.config).toBeDefined();
     });
 
-    it('当域名配置不存在时应该返回 null', async () => {
-      mockRepository.findById.mockResolvedValue(null);
+    it('域名不存在时应该返回 null', async () => {
+      mockDomainRepository.findById = jest.fn().mockResolvedValue(null);
 
-      const result = await service.getById(999);
+      const result = await domainService.getById(999);
 
-      expect(mockRepository.findById).toHaveBeenCalledWith(999);
       expect(result).toBeNull();
     });
   });
 
   describe('getByDomain', () => {
-    const mockDomain = {
-      id: 1,
-      domain: 'example.com',
-      title: 'Example',
-      author: 'Test Author',
-      description: 'Test Description',
-      keywords: 'test',
-      links: { home: 'https://example.com' },
-    } as Domain;
-
-    it('当缓存命中时应该从缓存返回数据', async () => {
-      const cachedData: DomainOutput = {
+    it('应该通过域名返回记录', async () => {
+      const mockDomain = {
         id: 1,
         domain: 'example.com',
-        title: 'Example',
-        author: 'Test Author',
-        description: 'Test Description',
-        keywords: 'test',
-        links: { home: 'https://example.com' },
+        configId: 1,
+        config: {
+          id: 1,
+          title: '测试配置',
+          author: null,
+          description: null,
+          keywords: null,
+          links: null,
+          permissions: null,
+        },
       };
 
-      mockCache.get.mockResolvedValue(cachedData);
+      mockDomainRepository.findByDomain = jest.fn().mockResolvedValue(mockDomain);
 
-      const result = await service.getByDomain('example.com');
+      const result = await domainService.getByDomain('example.com');
 
-      expect(mockCache.get).toHaveBeenCalledWith('example.com');
-      expect(mockRepository.findByDomain).not.toHaveBeenCalled();
-      expect(result).toEqual(cachedData);
-    });
-
-    it('当缓存未命中时应该从数据库查询并缓存', async () => {
-      mockCache.get.mockResolvedValue(null);
-      mockRepository.findByDomain.mockResolvedValue(mockDomain);
-
-      const result = await service.getByDomain('example.com');
-
-      expect(mockCache.get).toHaveBeenCalledWith('example.com');
-      expect(mockRepository.findByDomain).toHaveBeenCalledWith('example.com');
-      expect(mockCache.set).toHaveBeenCalledWith('example.com', {
-        id: 1,
-        domain: 'example.com',
-        title: 'Example',
-        author: 'Test Author',
-        description: 'Test Description',
-        keywords: 'test',
-        links: { home: 'https://example.com' },
-      });
-      expect(result).toEqual({
-        id: 1,
-        domain: 'example.com',
-        title: 'Example',
-        author: 'Test Author',
-        description: 'Test Description',
-        keywords: 'test',
-        links: { home: 'https://example.com' },
-      });
-    });
-
-    it('当域名配置不存在时应该返回 null', async () => {
-      mockCache.get.mockResolvedValue(null);
-      mockRepository.findByDomain.mockResolvedValue(null);
-
-      const result = await service.getByDomain('nonexistent.com');
-
-      expect(mockCache.get).toHaveBeenCalledWith('nonexistent.com');
-      expect(mockRepository.findByDomain).toHaveBeenCalledWith('nonexistent.com');
-      expect(mockCache.set).not.toHaveBeenCalled();
-      expect(result).toBeNull();
+      expect(result).toBeDefined();
+      expect(result!.domain).toBe('example.com');
+      expect(result!.config.title).toBe('测试配置');
     });
   });
 
   describe('list', () => {
-    it('应该返回分页的域名配置列表', async () => {
+    it('应该返回分页的域名列表', async () => {
       const mockDomains = [
-        {
-          id: 1,
-          domain: 'example1.com',
-          title: 'Example 1',
-          author: null,
-          description: null,
-          keywords: null,
-          links: null,
-        },
-        {
-          id: 2,
-          domain: 'example2.com',
-          title: 'Example 2',
-          author: null,
-          description: null,
-          keywords: null,
-          links: null,
-        },
-      ] as Domain[];
+        { id: 1, domain: 'site1.com', configId: 1, config: { id: 1, title: '配置1' } },
+        { id: 2, domain: 'site2.com', configId: 1, config: { id: 1, title: '配置1' } },
+      ];
 
-      const pagination: Pagination = { page: 1, pageSize: 10 };
+      mockDomainRepository.findAll = jest.fn().mockResolvedValue(mockDomains);
+      mockDomainRepository.count = jest.fn().mockResolvedValue(2);
 
-      mockRepository.findAll.mockResolvedValue(mockDomains);
-      mockRepository.count.mockResolvedValue(2);
+      const result = await domainService.list({ page: 1, pageSize: 20 });
 
-      const result = await service.list(pagination);
-
-      expect(mockRepository.findAll).toHaveBeenCalledWith(pagination);
-      expect(mockRepository.count).toHaveBeenCalled();
-      expect(result).toEqual({
-        data: [
-          {
-            id: 1,
-            domain: 'example1.com',
-            title: 'Example 1',
-            author: null,
-            description: null,
-            keywords: null,
-            links: null,
-          },
-          {
-            id: 2,
-            domain: 'example2.com',
-            title: 'Example 2',
-            author: null,
-            description: null,
-            keywords: null,
-            links: null,
-          },
-        ],
-        pagination: {
-          page: 1,
-          pageSize: 10,
-          total: 2,
-          totalPages: 1,
-        },
+      expect(result.data).toHaveLength(2);
+      expect(result.pagination).toEqual({
+        page: 1,
+        pageSize: 20,
+        total: 2,
+        totalPages: 1,
       });
-    });
-
-    it('应该正确计算总页数', async () => {
-      const pagination: Pagination = { page: 1, pageSize: 10 };
-
-      mockRepository.findAll.mockResolvedValue([]);
-      mockRepository.count.mockResolvedValue(25);
-
-      const result = await service.list(pagination);
-
-      expect(result.pagination.totalPages).toBe(3);
-    });
-
-    it('当没有数据时应该返回空列表', async () => {
-      const pagination: Pagination = { page: 1, pageSize: 10 };
-
-      mockRepository.findAll.mockResolvedValue([]);
-      mockRepository.count.mockResolvedValue(0);
-
-      const result = await service.list(pagination);
-
-      expect(result.data).toEqual([]);
-      expect(result.pagination.total).toBe(0);
-      expect(result.pagination.totalPages).toBe(0);
     });
   });
 
   describe('update', () => {
-    const updateInput: Partial<DomainInput> = {
-      title: 'Updated Title',
-      description: 'Updated Description',
-    };
+    it('应该成功更新域名', async () => {
+      const mockConfig = {
+        id: 2,
+        title: '新配置',
+        author: null,
+        description: null,
+        keywords: null,
+        links: null,
+        permissions: null,
+      };
 
-    it('应该成功更新域名配置并使缓存失效', async () => {
       const mockDomain = {
         id: 1,
         domain: 'example.com',
-        title: 'Updated Title',
-        author: 'Test Author',
-        description: 'Updated Description',
-        keywords: 'test',
-        links: null,
-      } as Domain;
+        configId: 2,
+        config: mockConfig,
+      };
 
-      mockRepository.update.mockResolvedValue(mockDomain);
+      mockConfigRepository.findById = jest.fn().mockResolvedValue(mockConfig);
+      mockDomainRepository.update = jest.fn().mockResolvedValue(mockDomain);
 
-      const result = await service.update(1, updateInput);
+      const result = await domainService.update(1, { configId: 2 });
 
-      expect(mockRepository.update).toHaveBeenCalledWith(1, updateInput);
-      expect(mockCache.delete).toHaveBeenCalledWith('example.com');
-      expect(result).toEqual({
-        id: 1,
-        domain: 'example.com',
-        title: 'Updated Title',
-        author: 'Test Author',
-        description: 'Updated Description',
-        keywords: 'test',
-        links: null,
-      });
+      expect(result).toBeDefined();
+      expect(result!.configId).toBe(2);
+      expect(mockConfigRepository.findById).toHaveBeenCalledWith(2);
     });
 
-    it('当域名配置不存在时应该返回 null', async () => {
-      mockRepository.update.mockResolvedValue(null);
+    it('配置不存在时应该抛出 NotFoundError', async () => {
+      mockConfigRepository.findById = jest.fn().mockResolvedValue(null);
 
-      const result = await service.update(999, updateInput);
+      await expect(domainService.update(1, { configId: 999 })).rejects.toThrow(NotFoundError);
+    });
 
-      expect(mockRepository.update).toHaveBeenCalledWith(999, updateInput);
-      expect(mockCache.delete).not.toHaveBeenCalled();
+    it('域名不存在时应该返回 null', async () => {
+      mockDomainRepository.update = jest.fn().mockResolvedValue(null);
+
+      const result = await domainService.update(999, {});
+
       expect(result).toBeNull();
     });
   });
 
   describe('delete', () => {
-    it('应该成功删除域名配置并使缓存失效', async () => {
-      const mockDomain = {
-        id: 1,
-        domain: 'example.com',
-        title: 'Example',
-        author: null,
-        description: null,
-        keywords: null,
-        links: null,
-      } as Domain;
+    it('应该成功删除域名', async () => {
+      mockDomainRepository.delete = jest.fn().mockResolvedValue(true);
 
-      mockRepository.findById.mockResolvedValue(mockDomain);
-      mockRepository.delete.mockResolvedValue(true);
+      const result = await domainService.delete(1);
 
-      const result = await service.delete(1);
-
-      expect(mockRepository.findById).toHaveBeenCalledWith(1);
-      expect(mockRepository.delete).toHaveBeenCalledWith(1);
-      expect(mockCache.delete).toHaveBeenCalledWith('example.com');
       expect(result).toBe(true);
+      expect(mockDomainRepository.delete).toHaveBeenCalledWith(1);
     });
 
-    it('当域名配置不存在时应该返回 false', async () => {
-      mockRepository.findById.mockResolvedValue(null);
+    it('域名不存在时应该抛出 NotFoundError', async () => {
+      mockDomainRepository.delete = jest.fn().mockResolvedValue(false);
 
-      const result = await service.delete(999);
-
-      expect(mockRepository.findById).toHaveBeenCalledWith(999);
-      expect(mockRepository.delete).not.toHaveBeenCalled();
-      expect(mockCache.delete).not.toHaveBeenCalled();
-      expect(result).toBe(false);
+      await expect(domainService.delete(999)).rejects.toThrow(NotFoundError);
     });
   });
 });

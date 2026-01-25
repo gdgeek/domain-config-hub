@@ -26,7 +26,7 @@ module.exports = {
     '!src/**/*.integration.ts',
     '!src/types/**/*.ts',
     '!src/index.ts',
-    '!src/app-v2.ts',
+    '!src/app.ts',
     '!src/models/migrations/**/*.ts',
   ],
   coverageThreshold: {

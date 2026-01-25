@@ -156,7 +156,7 @@ describe('环境变量配置模块', () => {
       process.env.REDIS_TTL = '1800';
       process.env.LOG_LEVEL = 'debug';
       process.env.LOG_FILE = 'logs/test.log';
-      process.env.API_PREFIX = '/api/v2';
+      process.env.API_PREFIX = '/api/v1';
       process.env.MAX_PAGE_SIZE = '50';
       process.env.DEFAULT_PAGE_SIZE = '10';
       process.env.RATE_LIMIT_WINDOW_MS = '30000';
@@ -191,7 +191,7 @@ describe('环境变量配置模块', () => {
       expect(config.logFile).toBe('logs/test.log');
 
       // API 配置
-      expect(config.apiPrefix).toBe('/api/v2');
+      expect(config.apiPrefix).toBe('/api/v1');
       expect(config.maxPageSize).toBe(50);
       expect(config.defaultPageSize).toBe(10);
 

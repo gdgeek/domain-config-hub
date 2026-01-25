@@ -115,12 +115,12 @@ curl -X DELETE http://localhost:3000/api/v1/configs/1
 
 **注意**：如果有域名正在使用该配置，删除会失败并返回 409 错误。
 
-### 域名管理 API（V2）
+### 域名管理 API
 
 #### 创建域名
 
 ```bash
-curl -X POST http://localhost:3000/api/v2/domains \
+curl -X POST http://localhost:3000/api/v1/domains \
   -H "Content-Type: application/json" \
   -d '{
     "domain": "example.com",
@@ -158,7 +158,7 @@ curl -X POST http://localhost:3000/api/v2/domains \
 #### 通过域名查询
 
 ```bash
-curl http://localhost:3000/api/v2/domains/example.com
+curl http://localhost:3000/api/v1/domains/example.com
 ```
 
 响应包含域名信息和关联的配置信息。
@@ -166,13 +166,13 @@ curl http://localhost:3000/api/v2/domains/example.com
 #### 获取域名列表
 
 ```bash
-curl http://localhost:3000/api/v2/domains?page=1&pageSize=20
+curl http://localhost:3000/api/v1/domains?page=1&pageSize=20
 ```
 
 #### 更新域名（更改关联的配置）
 
 ```bash
-curl -X PUT http://localhost:3000/api/v2/domains/1 \
+curl -X PUT http://localhost:3000/api/v1/domains/1 \
   -H "Content-Type: application/json" \
   -d '{
     "configId": 2
@@ -182,7 +182,7 @@ curl -X PUT http://localhost:3000/api/v2/domains/1 \
 #### 删除域名
 
 ```bash
-curl -X DELETE http://localhost:3000/api/v2/domains/1
+curl -X DELETE http://localhost:3000/api/v1/domains/1
 ```
 
 ## 使用场景
@@ -200,15 +200,15 @@ curl -X POST http://localhost:3000/api/v1/configs \
 # 假设返回的 configId 是 1
 
 # 2. 创建多个域名，都使用这个配置
-curl -X POST http://localhost:3000/api/v2/domains \
+curl -X POST http://localhost:3000/api/v1/domains \
   -H "Content-Type: application/json" \
   -d '{"domain": "site1.com", "configId": 1}'
 
-curl -X POST http://localhost:3000/api/v2/domains \
+curl -X POST http://localhost:3000/api/v1/domains \
   -H "Content-Type: application/json" \
   -d '{"domain": "site2.com", "configId": 1}'
 
-curl -X POST http://localhost:3000/api/v2/domains \
+curl -X POST http://localhost:3000/api/v1/domains \
   -H "Content-Type: application/json" \
   -d '{"domain": "site3.com", "configId": 1}'
 
@@ -222,7 +222,7 @@ curl -X PUT http://localhost:3000/api/v1/configs/1 \
 
 ```bash
 # 将域名从一个配置切换到另一个配置
-curl -X PUT http://localhost:3000/api/v2/domains/1 \
+curl -X PUT http://localhost:3000/api/v1/domains/1 \
   -H "Content-Type: application/json" \
   -d '{"configId": 2}'
 ```
@@ -231,18 +231,18 @@ curl -X PUT http://localhost:3000/api/v2/domains/1 \
 
 ### 方式 1：修改现有 index.ts
 
-在 `src/index.ts` 中导入 `app-v2.ts`：
+在 `src/index.ts` 中导入 `app.ts`：
 
 ```typescript
-import app from './app-v2';
+import app from './app';
 ```
 
 ### 方式 2：创建新的启动文件
 
-创建 `src/index-v2.ts`：
+创建 `src/index.ts`：
 
 ```typescript
-import app from './app-v2';
+import app from './app';
 import { config } from './config/env';
 import { connectWithRetry } from './config/database';
 import { connectRedis, closeRedis } from './config/redis';
@@ -303,8 +303,8 @@ startServer();
 ```json
 {
   "scripts": {
-    "start:v2": "node dist/index-v2.js",
-    "dev:v2": "ts-node src/index-v2.ts"
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts"
   }
 }
 ```
@@ -321,7 +321,7 @@ mysql -u root -p your_database < migrations/rollback_002.sql
 
 1. **外键约束**：`domains.config_id` 有外键约束，删除配置前必须先删除或更新所有使用该配置的域名
 2. **数据一致性**：创建域名时必须指定一个存在的 `configId`
-3. **API 版本**：双表架构使用 `/api/v2/domains` 路径，与原来的 `/api/v1/domains` 区分
+3. **API 版本**：双表架构使用 `/api/v1/domains` 路径
 4. **缓存策略**：如果使用 Redis 缓存，需要考虑配置更新时如何失效相关域名的缓存
 
 ## 性能优化建议

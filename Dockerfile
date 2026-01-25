@@ -43,6 +43,9 @@ COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 # Copy migration files if needed
 COPY --chown=nodejs:nodejs src/models/migrations ./src/models/migrations
 
+# Copy public files for admin interface
+COPY --chown=nodejs:nodejs public ./public
+
 # Switch to non-root user
 USER nodejs
 

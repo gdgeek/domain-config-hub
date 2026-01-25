@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON API 测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 4px;
+        }
+        .test-section h2 {
+            color: #555;
+            margin-top: 0;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .headers {
+            color: #666;
+            font-size: 11px;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .success {
+            color: #28a745;
+        }
+        .error {
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 JSON API Content-Type 测试</h1>
+        
+        <div class="test-section">
+            <h2>测试 1: 域名查询 API</h2>
+            <button onclick="testDomainAPI()">测试 /api/v1/domains/www.baidu.com</button>
+            <div id="domain-result" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>测试 2: 配置列表 API</h2>
+            <button onclick="testConfigAPI()">测试 /api/v1/configs</button>
+            <div id="config-result" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>测试 3: 健康检查 API</h2>
+            <button onclick="testHealthAPI()">测试 /health</button>
+            <div id="health-result" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>测试 4: 404 错误响应</h2>
+            <button onclick="test404API()">测试 /api/v1/nonexistent</button>
+            <div id="404-result" class="result" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script>
+        async function testAPI(url, resultId) {
+            const resultDiv = document.getElementById(resultId);
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '正在请求...';
+
+            try {
+                const response = await fetch(url);
+                const contentType = response.headers.get('Content-Type');
+                const xContentType = response.headers.get('X-Content-Type-Options');
+                
+                const data = await response.json();
+                
+                let headersInfo = `<div class="headers">`;
+                headersInfo += `<strong>响应状态:</strong> ${response.status} ${response.statusText}<br>`;
+                headersInfo += `<strong>Content-Type:</strong> <span class="success">${contentType}</span><br>`;
+                headersInfo += `<strong>X-Content-Type-Options:</strong> <span class="success">${xContentType || '未设置'}</span>`;
+                headersInfo += `</div>`;
+                
+                resultDiv.innerHTML = headersInfo + JSON.stringify(data, null, 2);
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">错误: ${error.message}</span>`;
+            }
+        }
+
+        function testDomainAPI() {
+            testAPI('/api/v1/domains/www.baidu.com', 'domain-result');
+        }
+
+        function testConfigAPI() {
+            testAPI('/api/v1/configs', 'config-result');
+        }
+
+        function testHealthAPI() {
+            testAPI('/health', 'health-result');
+        }
+
+        function test404API() {
+            testAPI('/api/v1/nonexistent', '404-result');
+        }
+    </script>
+</body>
+</html>

@@ -4,22 +4,22 @@
 
 import { ConfigService } from './ConfigService';
 import { ConfigRepository } from '../repositories/ConfigRepository';
-import { DomainV2Repository } from '../repositories/DomainV2Repository';
+import { DomainRepository } from '../repositories/DomainRepository';
 import { ConflictError } from '../errors/ConflictError';
 import { NotFoundError } from '../errors/NotFoundError';
 
 // Mock repositories
 jest.mock('../repositories/ConfigRepository');
-jest.mock('../repositories/DomainV2Repository');
+jest.mock('../repositories/DomainRepository');
 
 describe('ConfigService', () => {
   let configService: ConfigService;
   let mockConfigRepository: jest.Mocked<ConfigRepository>;
-  let mockDomainRepository: jest.Mocked<DomainV2Repository>;
+  let mockDomainRepository: jest.Mocked<DomainRepository>;
 
   beforeEach(() => {
     mockConfigRepository = new ConfigRepository() as jest.Mocked<ConfigRepository>;
-    mockDomainRepository = new DomainV2Repository() as jest.Mocked<DomainV2Repository>;
+    mockDomainRepository = new DomainRepository() as jest.Mocked<DomainRepository>;
     configService = new ConfigService(mockConfigRepository, mockDomainRepository);
   });
 

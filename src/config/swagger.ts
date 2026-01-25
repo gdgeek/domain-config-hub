@@ -42,16 +42,142 @@ const swaggerDefinition = {
       description: '域名配置管理接口',
     },
     {
+      name: 'Configs',
+      description: '配置内容管理接口',
+    },
+    {
+      name: 'Sessions',
+      description: '会话管理接口（RESTful 认证）',
+    },
+    {
       name: 'Health',
       description: '健康检查和监控接口',
     },
     {
       name: 'Admin',
-      description: '管理界面接口',
+      description: '管理界面接口（已废弃，请使用 Sessions）',
     },
   ],
   components: {
+    securitySchemes: {
+      bearerAuth: {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        description: 'JWT 认证令牌。通过 /api/v1/auth/login 接口获取令牌后，在此处输入令牌即可测试需要认证的接口。',
+      },
+    },
     schemas: {
+      // 配置对象
+      Config: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: {
+            type: 'integer',
+            description: '配置的唯一标识符',
+            example: 1,
+          },
+          title: {
+            type: 'string',
+            maxLength: 255,
+            nullable: true,
+            description: '网站标题',
+            example: 'Example Website',
+          },
+          author: {
+            type: 'string',
+            maxLength: 255,
+            nullable: true,
+            description: '网站作者',
+            example: 'John Doe',
+          },
+          description: {
+            type: 'string',
+            maxLength: 255,
+            nullable: true,
+            description: '网站描述',
+            example: 'This is an example website',
+          },
+          keywords: {
+            type: 'string',
+            maxLength: 255,
+            nullable: true,
+            description: '网站关键词',
+            example: 'example, website, demo',
+          },
+          links: {
+            type: 'object',
+            nullable: true,
+            description: '链接配置（JSON 对象）',
+            example: {
+              home: 'https://example.com',
+              about: 'https://example.com/about',
+            },
+          },
+          permissions: {
+            type: 'object',
+            nullable: true,
+            description: '权限配置（JSON 对象）',
+            example: {
+              read: true,
+              write: false,
+            },
+          },
+        },
+      },
+      // 配置输入对象
+      ConfigInput: {
+        type: 'object',
+        properties: {
+          title: {
+            type: 'string',
+            maxLength: 255,
+            nullable: true,
+            description: '网站标题',
+            example: 'Example Website',
+          },
+          author: {
+            type: 'string',
+            maxLength: 255,
+            nullable: true,
+            description: '网站作者',
+            example: 'John Doe',
+          },
+          description: {
+            type: 'string',
+            maxLength: 255,
+            nullable: true,
+            description: '网站描述',
+            example: 'This is an example website',
+          },
+          keywords: {
+            type: 'string',
+            maxLength: 255,
+            nullable: true,
+            description: '网站关键词',
+            example: 'example, website, demo',
+          },
+          links: {
+            type: 'object',
+            nullable: true,
+            description: '链接配置（JSON 对象）',
+            example: {
+              home: 'https://example.com',
+              about: 'https://example.com/about',
+            },
+          },
+          permissions: {
+            type: 'object',
+            nullable: true,
+            description: '权限配置（JSON 对象）',
+            example: {
+              read: true,
+              write: false,
+            },
+          },
+        },
+      },
       // 域名配置对象
       Domain: {
         type: 'object',
@@ -598,10 +724,16 @@ const swaggerDefinition = {
 const swaggerOptions: swaggerJsdoc.Options = {
   definition: swaggerDefinition,
   // API 路由文件路径（用于扫描 JSDoc 注释）
-  apis: [
-    './src/routes/*.ts',
-    './src/app.ts',
-  ],
+  // 开发环境使用 src 目录，生产环境使用 dist 目录
+  apis: process.env.NODE_ENV === 'production' 
+    ? [
+        './dist/routes/*.js',
+        './dist/app.js',
+      ]
+    : [
+        './src/routes/*.ts',
+        './src/app.ts',
+      ],
 };
 
 /**

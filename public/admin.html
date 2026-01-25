@@ -3,21 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>域名配置管理</title>
+    <title>域名配置管理系统</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
         }
-        
         .container {
             max-width: 1400px;
             margin: 0 auto;
@@ -26,188 +20,103 @@
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             overflow: hidden;
         }
-        
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 30px;
             text-align: center;
+            position: relative;
         }
-        
-        .header h1 {
-            font-size: 32px;
-            margin-bottom: 10px;
+        .header h1 { font-size: 32px; margin-bottom: 10px; }
+        .header p { opacity: 0.9; font-size: 14px; }
+        .version-badge {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.2);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
         }
-        
-        .header p {
-            opacity: 0.9;
-            font-size: 14px;
-        }
-        
-        .login-container {
-            max-width: 400px;
-            margin: 100px auto;
-            padding: 40px;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        }
-        
-        .login-container h2 {
-            text-align: center;
-            margin-bottom: 30px;
-            color: #667eea;
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 500;
-        }
-        
-        .form-group input,
-        .form-group textarea,
-        .form-group select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
+        .logout-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid white;
+            padding: 8px 16px;
             border-radius: 6px;
-            font-size: 14px;
-            transition: border-color 0.3s;
-        }
-        
-        .form-group input:focus,
-        .form-group textarea:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        
-        .form-group textarea {
-            min-height: 100px;
-            resize: vertical;
-            font-family: 'Courier New', monospace;
-        }
-        
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
             cursor: pointer;
+        }
+        .tabs {
+            display: flex;
+            background: #f9fafb;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
             transition: all 0.3s;
         }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            width: 100%;
+        .tab:hover { background: #f3f4f6; }
+        .tab.active {
+            background: white;
+            border-bottom-color: #667eea;
+            font-weight: 600;
         }
-        
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-        
-        .btn-success {
-            background: #10b981;
-            color: white;
-        }
-        
-        .btn-success:hover {
-            background: #059669;
-        }
-        
-        .btn-danger {
-            background: #ef4444;
-            color: white;
-        }
-        
-        .btn-danger:hover {
-            background: #dc2626;
-        }
-        
-        .btn-secondary {
-            background: #6b7280;
-            color: white;
-        }
-        
-        .btn-secondary:hover {
-            background: #4b5563;
-        }
-        
-        .btn-small {
-            padding: 6px 12px;
-            font-size: 12px;
-        }
-        
-        .content {
-            padding: 30px;
-        }
-        
+        .tab-content { display: none; padding: 30px; }
+        .tab-content.active { display: block; }
         .toolbar {
             display: flex;
             justify-content: space-between;
-            align-items: center;
             margin-bottom: 20px;
             padding-bottom: 20px;
             border-bottom: 2px solid #e0e0e0;
         }
-        
         .search-box {
             flex: 1;
             max-width: 400px;
             margin-right: 20px;
         }
-        
         .search-box input {
             width: 100%;
             padding: 10px 15px;
             border: 2px solid #e0e0e0;
             border-radius: 6px;
-            font-size: 14px;
         }
-        
-        .table-container {
-            overflow-x: auto;
-            margin-bottom: 20px;
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
         }
-        
+        .btn-primary { background: #667eea; color: white; }
+        .btn-success { background: #10b981; color: white; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-secondary { background: #6b7280; color: white; }
+        .btn-small { padding: 6px 12px; font-size: 12px; }
         table {
             width: 100%;
             border-collapse: collapse;
-            background: white;
         }
-        
         th, td {
             padding: 12px;
             text-align: left;
             border-bottom: 1px solid #e0e0e0;
         }
-        
         th {
             background: #f9fafb;
             font-weight: 600;
-            color: #374151;
-            position: sticky;
-            top: 0;
         }
-        
-        tr:hover {
-            background: #f9fafb;
-        }
-        
-        .actions {
-            display: flex;
-            gap: 8px;
-        }
-        
+        tr:hover { background: #f9fafb; }
+        .actions { display: flex; gap: 8px; }
         .modal {
             display: none;
             position: fixed;
@@ -217,16 +126,13 @@
             height: 100%;
             background: rgba(0,0,0,0.5);
             z-index: 1000;
-            overflow-y: auto;
         }
-        
         .modal.active {
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
         }
-        
         .modal-content {
             background: white;
             border-radius: 12px;
@@ -236,313 +142,247 @@
             max-height: 90vh;
             overflow-y: auto;
         }
-        
         .modal-header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
             margin-bottom: 20px;
         }
-        
-        .modal-header h2 {
-            color: #667eea;
-        }
-        
         .close-btn {
             background: none;
             border: none;
             font-size: 24px;
             cursor: pointer;
-            color: #6b7280;
         }
-        
-        .close-btn:hover {
-            color: #374151;
+        .form-group {
+            margin-bottom: 15px;
         }
-        
-        .alert {
-            padding: 12px 16px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            display: none;
-        }
-        
-        .alert.show {
+        .form-group label {
             display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
         }
-        
-        .alert-success {
-            background: #d1fae5;
-            color: #065f46;
-            border: 1px solid #10b981;
-        }
-        
-        .alert-error {
-            background: #fee2e2;
-            color: #991b1b;
-            border: 1px solid #ef4444;
-        }
-        
-        .json-editor {
-            background: #f9fafb;
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 10px;
             border: 2px solid #e0e0e0;
             border-radius: 6px;
-            padding: 12px;
+        }
+        .form-group textarea {
+            min-height: 80px;
             font-family: 'Courier New', monospace;
-            font-size: 13px;
         }
-        
-        .permission-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
+        .alert {
+            padding: 12px;
+            border-radius: 6px;
             margin-bottom: 20px;
-        }
-        
-        .permission-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .permission-item input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            cursor: pointer;
-        }
-        
-        .hidden {
             display: none;
         }
-        
-        .logout-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(255,255,255,0.2);
-            color: white;
-            border: 1px solid white;
-        }
-        
-        .logout-btn:hover {
-            background: rgba(255,255,255,0.3);
-        }
-        
-        .pagination {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        
-        .pagination button {
-            padding: 8px 16px;
-            border: 1px solid #e0e0e0;
+        .alert.show { display: block; }
+        .alert-success { background: #d1fae5; color: #065f46; }
+        .alert-error { background: #fee2e2; color: #991b1b; }
+        .hidden { display: none; }
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 40px;
             background: white;
-            border-radius: 6px;
-            cursor: pointer;
-        }
-        
-        .pagination button:hover:not(:disabled) {
-            background: #f9fafb;
-        }
-        
-        .pagination button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        
-        .pagination button.active {
-            background: #667eea;
-            color: white;
-            border-color: #667eea;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         }
     </style>
 </head>
 <body>
     <!-- 登录界面 -->
     <div id="loginContainer" class="login-container">
-        <h2>🔐 管理员登录</h2>
+        <h2 style="text-align: center; margin-bottom: 30px; color: #667eea;">🔐 管理员登录</h2>
         <div id="loginAlert" class="alert alert-error"></div>
         <form id="loginForm">
             <div class="form-group">
-                <label for="password">管理密码</label>
-                <input type="password" id="password" placeholder="请输入管理密码" required>
+                <label>管理密码</label>
+                <input type="password" id="password" required>
             </div>
-            <button type="submit" class="btn btn-primary">登录</button>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">登录</button>
         </form>
     </div>
 
     <!-- 主界面 -->
     <div id="mainContainer" class="container hidden">
         <div class="header">
+            <span class="version-badge">双表架构</span>
             <button class="btn btn-secondary btn-small logout-btn" onclick="logout()">退出登录</button>
             <h1>🌐 域名配置管理系统</h1>
-            <p>Domain Configuration Management System</p>
+            <p>Domain Configuration Management System - Dual Table Architecture</p>
         </div>
         
-        <div class="content">
-            <div id="alert" class="alert"></div>
-            
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('configs')">📋 配置管理</div>
+            <div class="tab" onclick="switchTab('domains')">🌍 域名管理</div>
+        </div>
+        
+        <!-- 配置管理标签页 -->
+        <div id="configsTab" class="tab-content active">
+            <div id="configAlert" class="alert"></div>
             <div class="toolbar">
                 <div class="search-box">
-                    <input type="text" id="searchInput" placeholder="🔍 搜索域名..." onkeyup="searchDomains()">
+                    <input type="text" id="configSearch" placeholder="🔍 搜索配置..." onkeyup="searchConfigs()">
                 </div>
-                <button class="btn btn-success" onclick="showCreateModal()">➕ 添加域名</button>
+                <button class="btn btn-success" onclick="showCreateConfigModal()">➕ 添加配置</button>
             </div>
-            
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>域名</th>
-                            <th>标题</th>
-                            <th>作者</th>
-                            <th>描述</th>
-                            <th>权限</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="domainTableBody">
-                        <tr>
-                            <td colspan="7" style="text-align: center; padding: 40px;">
-                                加载中...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>标题</th>
+                        <th>作者</th>
+                        <th>描述</th>
+                        <th>关联域名数</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="configTableBody">
+                    <tr><td colspan="6" style="text-align: center; padding: 40px;">加载中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- 域名管理标签页 -->
+        <div id="domainsTab" class="tab-content">
+            <div id="domainAlert" class="alert"></div>
+            <div class="toolbar">
+                <div class="search-box">
+                    <input type="text" id="domainSearch" placeholder="🔍 搜索域名..." onkeyup="searchDomains()">
+                </div>
+                <button class="btn btn-success" onclick="showCreateDomainModal()">➕ 添加域名</button>
             </div>
-            
-            <div class="pagination" id="pagination"></div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>域名</th>
+                        <th>主页</th>
+                        <th>配置ID</th>
+                        <th>标题</th>
+                        <th>作者</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="domainTableBody">
+                    <tr><td colspan="7" style="text-align: center; padding: 40px;">加载中...</td></tr>
+                </tbody>
+            </table>
         </div>
     </div>
 
-    <!-- 创建/编辑模态框 -->
+    <!-- 配置模态框 -->
+    <div id="configModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="configModalTitle">添加配置</h2>
+                <button class="close-btn" onclick="closeConfigModal()">&times;</button>
+            </div>
+            <form id="configForm">
+                <input type="hidden" id="configId">
+                <div class="form-group">
+                    <label>标题</label>
+                    <input type="text" id="configTitle">
+                </div>
+                <div class="form-group">
+                    <label>作者</label>
+                    <input type="text" id="configAuthor">
+                </div>
+                <div class="form-group">
+                    <label>描述</label>
+                    <input type="text" id="configDescription">
+                </div>
+                <div class="form-group">
+                    <label>关键词</label>
+                    <input type="text" id="configKeywords">
+                </div>
+                <div class="form-group">
+                    <label>链接配置 (JSON)</label>
+                    <textarea id="configLinks" placeholder='{"home": "https://example.com"}'></textarea>
+                </div>
+                <div class="form-group">
+                    <label>权限配置 (JSON)</label>
+                    <textarea id="configPermissions" placeholder='{"read": true, "write": false}'></textarea>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">保存</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeConfigModal()">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 域名模态框 -->
     <div id="domainModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 id="modalTitle">添加域名</h2>
-                <button class="close-btn" onclick="closeModal()">&times;</button>
+                <h2 id="domainModalTitle">添加域名</h2>
+                <button class="close-btn" onclick="closeDomainModal()">&times;</button>
             </div>
-            
             <form id="domainForm">
                 <input type="hidden" id="domainId">
-                
                 <div class="form-group">
-                    <label for="domain">域名 *</label>
-                    <input type="text" id="domain" placeholder="example.com" required>
+                    <label>域名 *</label>
+                    <input type="text" id="domainName" placeholder="example.com" required>
                 </div>
-                
                 <div class="form-group">
-                    <label for="title">标题</label>
-                    <input type="text" id="title" placeholder="网站标题">
+                    <label>主页 URL</label>
+                    <input type="url" id="domainHomepage" placeholder="https://example.com">
+                    <small style="color: #666; font-size: 12px;">可选，域名的主页地址</small>
                 </div>
-                
                 <div class="form-group">
-                    <label for="author">作者</label>
-                    <input type="text" id="author" placeholder="作者名称">
+                    <label>关联配置 *</label>
+                    <select id="domainConfigId" required>
+                        <option value="">请选择配置</option>
+                    </select>
                 </div>
-                
-                <div class="form-group">
-                    <label for="description">描述</label>
-                    <input type="text" id="description" placeholder="网站描述">
-                </div>
-                
-                <div class="form-group">
-                    <label for="keywords">关键词</label>
-                    <input type="text" id="keywords" placeholder="关键词1, 关键词2">
-                </div>
-                
-                <div class="form-group">
-                    <label>权限配置</label>
-                    <div class="permission-grid">
-                        <div class="permission-item">
-                            <input type="checkbox" id="permRead">
-                            <label for="permRead">读取权限</label>
-                        </div>
-                        <div class="permission-item">
-                            <input type="checkbox" id="permWrite">
-                            <label for="permWrite">写入权限</label>
-                        </div>
-                        <div class="permission-item">
-                            <input type="checkbox" id="permAdmin">
-                            <label for="permAdmin">管理员权限</label>
-                        </div>
-                        <div class="permission-item">
-                            <input type="checkbox" id="permComments">
-                            <label for="permComments">评论功能</label>
-                        </div>
-                        <div class="permission-item">
-                            <input type="checkbox" id="permUpload">
-                            <label for="permUpload">上传功能</label>
-                        </div>
-                        <div class="permission-item">
-                            <input type="checkbox" id="permApiAccess">
-                            <label for="permApiAccess">API访问</label>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="links">链接配置 (JSON)</label>
-                    <textarea id="links" class="json-editor" placeholder='{"home": "https://example.com"}'></textarea>
-                </div>
-                
-                <div class="form-group">
-                    <label for="permissionsJson">高级权限配置 (JSON)</label>
-                    <textarea id="permissionsJson" class="json-editor" placeholder='{"roles": ["viewer"], "restrictions": {}}'></textarea>
-                </div>
-                
                 <div style="display: flex; gap: 10px;">
                     <button type="submit" class="btn btn-primary" style="flex: 1;">保存</button>
-                    <button type="button" class="btn btn-secondary" onclick="closeModal()">取消</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeDomainModal()">取消</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
-        const API_BASE = '/api/v1';
-        let currentPage = 1;
-        let pageSize = 10;
-        let totalPages = 1;
-        let allDomains = [];
         let authToken = '';
+        let allConfigs = [];
+        let allDomains = [];
 
-        // 登录处理
+        // 登录
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const password = document.getElementById('password').value;
-            
             try {
-                const response = await fetch(`${API_BASE}/auth/login`, {
+                const response = await fetch('/api/v1/auth/login', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                     body: JSON.stringify({ password })
                 });
-                
                 if (response.ok) {
                     const data = await response.json();
                     authToken = data.token || password;
                     localStorage.setItem('adminToken', authToken);
                     showMainContainer();
+                    loadConfigs();
                     loadDomains();
                 } else {
                     showLoginError('密码错误');
                 }
             } catch (error) {
-                // 简单验证模式
                 authToken = password;
                 localStorage.setItem('adminToken', authToken);
                 showMainContainer();
+                loadConfigs();
                 loadDomains();
             }
         });
-        
-        function showLoginError(message) {
+
+        function showLoginError(msg) {
             const alert = document.getElementById('loginAlert');
-            alert.textContent = message;
+            alert.textContent = msg;
             alert.classList.add('show');
             setTimeout(() => alert.classList.remove('show'), 3000);
         }
@@ -551,272 +391,347 @@
             document.getElementById('loginContainer').classList.add('hidden');
             document.getElementById('mainContainer').classList.remove('hidden');
         }
-        
+
         function logout() {
             localStorage.removeItem('adminToken');
-            authToken = '';
-            document.getElementById('loginContainer').classList.remove('hidden');
-            document.getElementById('mainContainer').classList.add('hidden');
-            document.getElementById('password').value = '';
+            location.reload();
         }
-        
-        // 检查登录状态
+
         window.addEventListener('load', () => {
             const token = localStorage.getItem('adminToken');
             if (token) {
                 authToken = token;
                 showMainContainer();
+                loadConfigs();
                 loadDomains();
             }
         });
-        
-        // 加载域名列表
-        async function loadDomains() {
+
+        // 标签切换
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(tab + 'Tab').classList.add('active');
+        }
+
+        // 加载配置列表
+        async function loadConfigs() {
             try {
-                const response = await fetch(`${API_BASE}/domains?page=${currentPage}&pageSize=${pageSize}`, {
-                    headers: { 'Authorization': `Bearer ${authToken}` }
+                const url = '/api/v1/configs';
+                console.log('正在请求:', url);
+                console.log('完整 URL:', window.location.origin + url);
+                
+                const response = await fetch(url, {
+                    headers: { 
+                        'Authorization': `Bearer ${authToken}`,
+                        'Accept': 'application/json'
+                    },
+                    cache: 'no-cache'
                 });
                 
-                if (!response.ok) throw new Error('加载失败');
+                console.log('响应状态:', response.status);
+                console.log('响应 Content-Type:', response.headers.get('content-type'));
+                
+                if (!response.ok) {
+                    const text = await response.text();
+                    console.error('错误响应内容:', text.substring(0, 200));
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
                 
                 const data = await response.json();
-                allDomains = data.data || [];
-                totalPages = data.pagination?.totalPages || 1;
-                
-                renderTable(allDomains);
-                renderPagination();
+                allConfigs = data.data || [];
+                renderConfigTable(allConfigs);
             } catch (error) {
-                showAlert('加载域名列表失败: ' + error.message, 'error');
+                console.error('加载配置失败:', error);
+                showAlert('configAlert', '加载配置失败: ' + error.message, 'error');
+                // 如果是认证错误，清除 token 并重新登录
+                if (error.message.includes('401') || error.message.includes('403')) {
+                    logout();
+                }
             }
         }
 
-        // 渲染表格
-        function renderTable(domains) {
-            const tbody = document.getElementById('domainTableBody');
-            
-            if (domains.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px;">暂无数据</td></tr>';
+        function renderConfigTable(configs) {
+            const tbody = document.getElementById('configTableBody');
+            if (configs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px;">暂无数据</td></tr>';
                 return;
             }
-            
-            tbody.innerHTML = domains.map(domain => `
+            tbody.innerHTML = configs.map(c => `
                 <tr>
-                    <td>${domain.id}</td>
-                    <td><strong>${domain.domain}</strong></td>
-                    <td>${domain.title || '-'}</td>
-                    <td>${domain.author || '-'}</td>
-                    <td>${domain.description || '-'}</td>
-                    <td>${formatPermissions(domain.permissions)}</td>
+                    <td>${c.id}</td>
+                    <td><strong>${c.title || '-'}</strong></td>
+                    <td>${c.author || '-'}</td>
+                    <td>${c.description || '-'}</td>
+                    <td>-</td>
                     <td class="actions">
-                        <button class="btn btn-primary btn-small" onclick="editDomain(${domain.id})">编辑</button>
-                        <button class="btn btn-danger btn-small" onclick="deleteDomain(${domain.id}, '${domain.domain}')">删除</button>
+                        <button class="btn btn-primary btn-small" onclick="editConfig(${c.id})">编辑</button>
+                        <button class="btn btn-danger btn-small" onclick="deleteConfig(${c.id})">删除</button>
                     </td>
                 </tr>
             `).join('');
         }
-        
-        function formatPermissions(permissions) {
-            if (!permissions) return '-';
-            const perms = [];
-            if (permissions.read) perms.push('读');
-            if (permissions.write) perms.push('写');
-            if (permissions.admin) perms.push('管理');
-            return perms.length > 0 ? perms.join(', ') : '-';
+
+        function searchConfigs() {
+            const term = document.getElementById('configSearch').value.toLowerCase();
+            const filtered = allConfigs.filter(c => 
+                (c.title && c.title.toLowerCase().includes(term)) ||
+                (c.author && c.author.toLowerCase().includes(term))
+            );
+            renderConfigTable(filtered);
         }
 
-        // 渲染分页
-        function renderPagination() {
-            const pagination = document.getElementById('pagination');
-            let html = '';
-            
-            html += `<button onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>上一页</button>`;
-            
-            for (let i = 1; i <= totalPages; i++) {
-                if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
-                    html += `<button class="${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
-                } else if (i === currentPage - 3 || i === currentPage + 3) {
-                    html += '<button disabled>...</button>';
+        // 加载域名列表
+        async function loadDomains() {
+            try {
+                const response = await fetch('/api/v1/domains', {
+                    headers: { 
+                        'Authorization': `Bearer ${authToken}`,
+                        'Accept': 'application/json'
+                    },
+                    cache: 'no-cache'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                allDomains = data.data || [];
+                renderDomainTable(allDomains);
+            } catch (error) {
+                console.error('加载域名失败:', error);
+                showAlert('domainAlert', '加载域名失败: ' + error.message, 'error');
+                // 如果是认证错误，清除 token 并重新登录
+                if (error.message.includes('401') || error.message.includes('403')) {
+                    logout();
                 }
             }
-            
-            html += `<button onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>下一页</button>`;
-            
-            pagination.innerHTML = html;
         }
-        
-        function changePage(page) {
-            if (page < 1 || page > totalPages) return;
-            currentPage = page;
-            loadDomains();
+
+        function renderDomainTable(domains) {
+            const tbody = document.getElementById('domainTableBody');
+            if (domains.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px;">暂无数据</td></tr>';
+                return;
+            }
+            tbody.innerHTML = domains.map(d => `
+                <tr>
+                    <td>${d.id}</td>
+                    <td><strong>${d.domain}</strong></td>
+                    <td>${d.homepage ? `<a href="${d.homepage}" target="_blank" style="color: #667eea;">🔗</a>` : '-'}</td>
+                    <td>${d.configId}</td>
+                    <td>${d.config?.title || '-'}</td>
+                    <td>${d.config?.author || '-'}</td>
+                    <td class="actions">
+                        <button class="btn btn-primary btn-small" onclick="editDomain(${d.id})">编辑</button>
+                        <button class="btn btn-danger btn-small" onclick="deleteDomain(${d.id}, '${d.domain}')">删除</button>
+                    </td>
+                </tr>
+            `).join('');
         }
-        
-        // 搜索功能
+
         function searchDomains() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const term = document.getElementById('domainSearch').value.toLowerCase();
             const filtered = allDomains.filter(d => 
-                d.domain.toLowerCase().includes(searchTerm) ||
-                (d.title && d.title.toLowerCase().includes(searchTerm))
+                d.domain.toLowerCase().includes(term) ||
+                (d.config?.title && d.config.title.toLowerCase().includes(term))
             );
-            renderTable(filtered);
+            renderDomainTable(filtered);
         }
 
-        // 显示创建模态框
-        function showCreateModal() {
-            document.getElementById('modalTitle').textContent = '添加域名';
-            document.getElementById('domainForm').reset();
-            document.getElementById('domainId').value = '';
-            document.getElementById('domain').disabled = false;
-            document.getElementById('domainModal').classList.add('active');
+        // 配置CRUD
+        function showCreateConfigModal() {
+            document.getElementById('configModalTitle').textContent = '添加配置';
+            document.getElementById('configForm').reset();
+            document.getElementById('configId').value = '';
+            document.getElementById('configModal').classList.add('active');
         }
-        
-        // 编辑域名
-        async function editDomain(id) {
+
+        async function editConfig(id) {
             try {
-                const response = await fetch(`${API_BASE}/domains/id/${id}`, {
-                    headers: { 'Authorization': `Bearer ${authToken}` }
+                const response = await fetch(`/api/v1/configs/${id}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}`, 'Accept': 'application/json' }
                 });
-                
-                if (!response.ok) throw new Error('加载失败');
-                
                 const result = await response.json();
-                const domain = result.data;
-                
-                document.getElementById('modalTitle').textContent = '编辑域名';
-                document.getElementById('domainId').value = domain.id;
-                document.getElementById('domain').value = domain.domain;
-                document.getElementById('domain').disabled = true;
-                document.getElementById('title').value = domain.title || '';
-                document.getElementById('author').value = domain.author || '';
-                document.getElementById('description').value = domain.description || '';
-                document.getElementById('keywords').value = domain.keywords || '';
-                document.getElementById('links').value = domain.links ? JSON.stringify(domain.links, null, 2) : '';
-                
-                // 设置权限
-                const perms = domain.permissions || {};
-                document.getElementById('permRead').checked = perms.read || false;
-                document.getElementById('permWrite').checked = perms.write || false;
-                document.getElementById('permAdmin').checked = perms.admin || false;
-                document.getElementById('permComments').checked = perms.features?.comments || false;
-                document.getElementById('permUpload').checked = perms.features?.upload || false;
-                document.getElementById('permApiAccess').checked = perms.features?.api_access || false;
-                
-                // 高级权限配置
-                const advancedPerms = { ...perms };
-                delete advancedPerms.read;
-                delete advancedPerms.write;
-                delete advancedPerms.admin;
-                delete advancedPerms.features;
-                document.getElementById('permissionsJson').value = Object.keys(advancedPerms).length > 0 
-                    ? JSON.stringify(advancedPerms, null, 2) : '';
-                
-                document.getElementById('domainModal').classList.add('active');
+                const config = result.data;
+                document.getElementById('configModalTitle').textContent = '编辑配置';
+                document.getElementById('configId').value = config.id;
+                document.getElementById('configTitle').value = config.title || '';
+                document.getElementById('configAuthor').value = config.author || '';
+                document.getElementById('configDescription').value = config.description || '';
+                document.getElementById('configKeywords').value = config.keywords || '';
+                document.getElementById('configLinks').value = config.links ? JSON.stringify(config.links, null, 2) : '';
+                document.getElementById('configPermissions').value = config.permissions ? JSON.stringify(config.permissions, null, 2) : '';
+                document.getElementById('configModal').classList.add('active');
             } catch (error) {
-                showAlert('加载域名信息失败: ' + error.message, 'error');
+                showAlert('configAlert', '加载配置失败: ' + error.message, 'error');
             }
         }
 
-        // 删除域名
-        async function deleteDomain(id, domain) {
-            if (!confirm(`确定要删除域名 "${domain}" 吗？此操作不可恢复！`)) return;
-            
+        async function deleteConfig(id) {
+            if (!confirm('确定要删除此配置吗？')) return;
             try {
-                const response = await fetch(`${API_BASE}/domains/${id}`, {
+                const response = await fetch(`/api/v1/configs/${id}`, {
                     method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${authToken}` }
+                    headers: { 'Authorization': `Bearer ${authToken}`, 'Accept': 'application/json' }
                 });
-                
-                if (!response.ok) throw new Error('删除失败');
-                
-                showAlert('删除成功', 'success');
-                loadDomains();
+                // 204 No Content 表示删除成功
+                if (!response.ok && response.status !== 204) throw new Error('删除失败');
+                showAlert('configAlert', '删除成功', 'success');
+                loadConfigs();
             } catch (error) {
-                showAlert('删除失败: ' + error.message, 'error');
+                showAlert('configAlert', '删除失败: ' + error.message, 'error');
             }
         }
-        
-        // 关闭模态框
-        function closeModal() {
-            document.getElementById('domainModal').classList.remove('active');
-        }
-        
-        // 表单提交
-        document.getElementById('domainForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const id = document.getElementById('domainId').value;
-            const formData = {
-                domain: document.getElementById('domain').value,
-                title: document.getElementById('title').value || null,
-                author: document.getElementById('author').value || null,
-                description: document.getElementById('description').value || null,
-                keywords: document.getElementById('keywords').value || null,
-            };
 
-            // 解析 links
+        function closeConfigModal() {
+            document.getElementById('configModal').classList.remove('active');
+        }
+
+        document.getElementById('configForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('configId').value;
+            const formData = {
+                title: document.getElementById('configTitle').value || null,
+                author: document.getElementById('configAuthor').value || null,
+                description: document.getElementById('configDescription').value || null,
+                keywords: document.getElementById('configKeywords').value || null,
+            };
             try {
-                const linksText = document.getElementById('links').value.trim();
+                const linksText = document.getElementById('configLinks').value.trim();
                 formData.links = linksText ? JSON.parse(linksText) : null;
             } catch (error) {
-                showAlert('链接配置 JSON 格式错误', 'error');
+                showAlert('configAlert', '链接配置 JSON 格式错误', 'error');
                 return;
             }
-            
-            // 构建权限配置
-            const permissions = {
-                read: document.getElementById('permRead').checked,
-                write: document.getElementById('permWrite').checked,
-                admin: document.getElementById('permAdmin').checked,
-                features: {
-                    comments: document.getElementById('permComments').checked,
-                    upload: document.getElementById('permUpload').checked,
-                    api_access: document.getElementById('permApiAccess').checked,
-                }
-            };
-            
-            // 合并高级权限配置
             try {
-                const advancedPermsText = document.getElementById('permissionsJson').value.trim();
-                if (advancedPermsText) {
-                    const advancedPerms = JSON.parse(advancedPermsText);
-                    Object.assign(permissions, advancedPerms);
-                }
+                const permsText = document.getElementById('configPermissions').value.trim();
+                formData.permissions = permsText ? JSON.parse(permsText) : null;
             } catch (error) {
-                showAlert('高级权限配置 JSON 格式错误', 'error');
+                showAlert('configAlert', '权限配置 JSON 格式错误', 'error');
                 return;
             }
-            
-            formData.permissions = permissions;
-
             try {
-                const url = id ? `${API_BASE}/domains/${id}` : `${API_BASE}/domains`;
+                const url = id ? `/api/v1/configs/${id}` : '/api/v1/configs';
                 const method = id ? 'PUT' : 'POST';
-                
                 const response = await fetch(url, {
                     method,
                     headers: {
-                        'Content-Type': 'application/json',
+                        'Content-Type': 'application/json', 'Accept': 'application/json',
                         'Authorization': `Bearer ${authToken}`
                     },
                     body: JSON.stringify(formData)
                 });
-                
+                if (!response.ok) throw new Error('操作失败');
+                showAlert('configAlert', id ? '更新成功' : '创建成功', 'success');
+                closeConfigModal();
+                loadConfigs();
+            } catch (error) {
+                showAlert('configAlert', '操作失败: ' + error.message, 'error');
+            }
+        });
+
+        // 域名CRUD
+        async function showCreateDomainModal() {
+            await loadConfigsForSelect();
+            document.getElementById('domainModalTitle').textContent = '添加域名';
+            document.getElementById('domainForm').reset();
+            document.getElementById('domainId').value = '';
+            document.getElementById('domainName').disabled = false;
+            document.getElementById('domainModal').classList.add('active');
+        }
+
+        async function loadConfigsForSelect() {
+            try {
+                const response = await fetch('/api/v1/configs', {
+                    headers: { 'Authorization': `Bearer ${authToken}`, 'Accept': 'application/json' }
+                });
+                const data = await response.json();
+                const select = document.getElementById('domainConfigId');
+                select.innerHTML = '<option value="">请选择配置</option>' + 
+                    (data.data || []).map(c => `<option value="${c.id}">${c.title || `配置 ${c.id}`}</option>`).join('');
+            } catch (error) {
+                console.error('加载配置列表失败', error);
+            }
+        }
+
+        async function editDomain(id) {
+            await loadConfigsForSelect();
+            try {
+                const response = await fetch(`/api/v1/domains/id/${id}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}`, 'Accept': 'application/json' }
+                });
+                const result = await response.json();
+                const domain = result.data;
+                document.getElementById('domainModalTitle').textContent = '编辑域名';
+                document.getElementById('domainId').value = domain.id;
+                document.getElementById('domainName').value = domain.domain;
+                document.getElementById('domainName').disabled = true;
+                document.getElementById('domainHomepage').value = domain.homepage || '';
+                document.getElementById('domainConfigId').value = domain.configId;
+                document.getElementById('domainModal').classList.add('active');
+            } catch (error) {
+                showAlert('domainAlert', '加载域名失败: ' + error.message, 'error');
+            }
+        }
+
+        async function deleteDomain(id, domain) {
+            if (!confirm(`确定要删除域名 "${domain}" 吗？`)) return;
+            try {
+                const response = await fetch(`/api/v1/domains/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${authToken}`, 'Accept': 'application/json' }
+                });
+                // 204 No Content 表示删除成功
+                if (!response.ok && response.status !== 204) throw new Error('删除失败');
+                showAlert('domainAlert', '删除成功', 'success');
+                loadDomains();
+            } catch (error) {
+                showAlert('domainAlert', '删除失败: ' + error.message, 'error');
+            }
+        }
+
+        function closeDomainModal() {
+            document.getElementById('domainModal').classList.remove('active');
+        }
+
+        document.getElementById('domainForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('domainId').value;
+            const homepage = document.getElementById('domainHomepage').value.trim();
+            const formData = {
+                domain: document.getElementById('domainName').value,
+                configId: parseInt(document.getElementById('domainConfigId').value),
+                homepage: homepage || null
+            };
+            try {
+                const url = id ? `/api/v1/domains/${id}` : '/api/v1/domains';
+                const method = id ? 'PUT' : 'POST';
+                const response = await fetch(url, {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json', 'Accept': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(formData)
+                });
                 if (!response.ok) {
                     const error = await response.json();
                     throw new Error(error.error?.message || '操作失败');
                 }
-                
-                showAlert(id ? '更新成功' : '创建成功', 'success');
-                closeModal();
+                showAlert('domainAlert', id ? '更新成功' : '创建成功', 'success');
+                closeDomainModal();
                 loadDomains();
             } catch (error) {
-                showAlert('操作失败: ' + error.message, 'error');
+                showAlert('domainAlert', '操作失败: ' + error.message, 'error');
             }
         });
-        
-        // 显示提示信息
-        function showAlert(message, type) {
-            const alert = document.getElementById('alert');
-            alert.textContent = message;
+
+        function showAlert(id, msg, type) {
+            const alert = document.getElementById(id);
+            alert.textContent = msg;
             alert.className = `alert alert-${type} show`;
             setTimeout(() => alert.classList.remove('show'), 3000);
         }

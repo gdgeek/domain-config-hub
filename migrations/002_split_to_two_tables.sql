@@ -69,8 +69,14 @@ LEFT JOIN `configs` c ON (
   AND (d.`author` = c.`author` OR (d.`author` IS NULL AND c.`author` IS NULL))
   AND (d.`description` = c.`description` OR (d.`description` IS NULL AND c.`description` IS NULL))
   AND (d.`keywords` = c.`keywords` OR (d.`keywords` IS NULL AND c.`keywords` IS NULL))
-  AND (JSON_EXTRACT(d.`links`, '$') = JSON_EXTRACT(c.`links`, '$') OR (d.`links` IS NULL AND c.`links` IS NULL))
-  AND (JSON_EXTRACT(d.`permissions`, '$') = JSON_EXTRACT(c.`permissions`, '$') OR (d.`permissions` IS NULL AND c.`permissions` IS NULL))
+  AND (
+    (d.`links` IS NULL AND c.`links` IS NULL) 
+    OR (d.`links` IS NOT NULL AND c.`links` IS NOT NULL AND JSON_UNQUOTE(d.`links`) = JSON_UNQUOTE(c.`links`))
+  )
+  AND (
+    (d.`permissions` IS NULL AND c.`permissions` IS NULL)
+    OR (d.`permissions` IS NOT NULL AND c.`permissions` IS NOT NULL AND JSON_UNQUOTE(d.`permissions`) = JSON_UNQUOTE(c.`permissions`))
+  )
 );
 
 -- ============================================================

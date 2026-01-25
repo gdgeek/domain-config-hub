@@ -108,6 +108,8 @@ router.get(
  *   post:
  *     summary: 创建配置
  *     tags: [Configs]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -126,6 +128,10 @@ router.get(
  *                   $ref: '#/components/schemas/Config'
  *       400:
  *         description: 请求数据验证失败
+ *       401:
+ *         description: 未提供认证令牌
+ *       403:
+ *         description: 认证令牌无效或过期
  */
 router.post(
   '/',
@@ -140,8 +146,10 @@ router.post(
  * @swagger
  * /api/v1/configs/{id}:
  *   put:
- *     summary: 更新配置
+ *     summary: 完全更新配置
  *     tags: [Configs]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -165,6 +173,10 @@ router.post(
  *               properties:
  *                 data:
  *                   $ref: '#/components/schemas/Config'
+ *       401:
+ *         description: 未提供认证令牌
+ *       403:
+ *         description: 认证令牌无效或过期
  *       404:
  *         description: 配置不存在
  */
@@ -187,9 +199,86 @@ router.put(
 /**
  * @swagger
  * /api/v1/configs/{id}:
+ *   patch:
+ *     summary: 部分更新配置
+ *     tags: [Configs]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: 配置 ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ConfigInput'
+ *     responses:
+ *       200:
+ *         description: 配置更新成功
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   $ref: '#/components/schemas/Config'
+ *       400:
+ *         description: 至少需要提供一个要更新的字段
+ *       401:
+ *         description: 未提供认证令牌
+ *       403:
+ *         description: 认证令牌无效或过期
+ *       404:
+ *         description: 配置不存在
+ */
+router.patch(
+  '/:id',
+  validateParams(idParamSchema),
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = parseInt(req.params.id, 10);
+    
+    // PATCH 只更新提供的字段
+    const updates: any = {};
+    if (req.body.title !== undefined) updates.title = req.body.title;
+    if (req.body.author !== undefined) updates.author = req.body.author;
+    if (req.body.description !== undefined) updates.description = req.body.description;
+    if (req.body.keywords !== undefined) updates.keywords = req.body.keywords;
+    if (req.body.links !== undefined) updates.links = req.body.links;
+    if (req.body.permissions !== undefined) updates.permissions = req.body.permissions;
+    
+    if (Object.keys(updates).length === 0) {
+      res.status(400).json({
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: '至少需要提供一个要更新的字段'
+        }
+      });
+      return;
+    }
+    
+    const config = await configService.update(id, updates);
+
+    if (!config) {
+      throw new NotFoundError('配置不存在', 'CONFIG_NOT_FOUND');
+    }
+
+    res.json({ data: config });
+  })
+);
+
+/**
+ * @swagger
+ * /api/v1/configs/{id}:
  *   delete:
  *     summary: 删除配置
  *     tags: [Configs]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -198,15 +287,12 @@ router.put(
  *           type: integer
  *         description: 配置 ID
  *     responses:
- *       200:
- *         description: 配置删除成功
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
+ *       204:
+ *         description: 配置删除成功（无响应体）
+ *       401:
+ *         description: 未提供认证令牌
+ *       403:
+ *         description: 认证令牌无效或过期
  *       404:
  *         description: 配置不存在
  *       409:
@@ -218,7 +304,8 @@ router.delete(
   asyncHandler(async (req: Request, res: Response) => {
     const id = parseInt(req.params.id, 10);
     await configService.delete(id);
-    res.json({ message: '配置删除成功' });
+    // RESTful 最佳实践：删除成功返回 204 No Content
+    res.status(204).send();
   })
 );
 

@@ -71,7 +71,7 @@ describe('ConfigRoutes', () => {
   });
 
   describe('PUT /:id', () => {
-    it('应该更新配置', async () => {
+    it('应该完全更新配置', async () => {
       const mockConfig = { id: 1, title: 'Updated' };
       (configService.update as jest.Mock).mockResolvedValue(mockConfig);
 
@@ -94,14 +94,47 @@ describe('ConfigRoutes', () => {
     });
   });
 
+  describe('PATCH /:id', () => {
+    it('应该部分更新配置', async () => {
+      const mockConfig = { id: 1, title: 'Partially Updated' };
+      (configService.update as jest.Mock).mockResolvedValue(mockConfig);
+
+      const response = await request(app)
+        .patch('/api/v1/configs/1')
+        .send({ title: 'Partially Updated' });
+
+      expect(response.status).toBe(200);
+      expect(response.body.data).toEqual(mockConfig);
+    });
+
+    it('没有提供更新字段时应返回 400', async () => {
+      const response = await request(app)
+        .patch('/api/v1/configs/1')
+        .send({});
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('配置不存在时应返回 404', async () => {
+      (configService.update as jest.Mock).mockResolvedValue(null);
+
+      const response = await request(app)
+        .patch('/api/v1/configs/999')
+        .send({ title: 'Updated' });
+
+      expect(response.status).toBe(404);
+    });
+  });
+
   describe('DELETE /:id', () => {
-    it('应该删除配置', async () => {
+    it('应该删除配置并返回 204', async () => {
       (configService.delete as jest.Mock).mockResolvedValue(undefined);
 
       const response = await request(app).delete('/api/v1/configs/1');
 
-      expect(response.status).toBe(200);
-      expect(response.body.message).toBe('配置删除成功');
+      expect(response.status).toBe(204);
+      expect(response.body).toEqual({});
     });
   });
 });
