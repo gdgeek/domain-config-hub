@@ -1,0 +1,97 @@
+services:
+  app:
+    container_name: domain-config-app
+    image: hkccr.ccs.tencentyun.com/gdgeek/domain:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${PORT:-3000}
+      DB_HOST: mysql
+      DB_PORT: ${DB_PORT:-3306}
+      DB_NAME: ${DB_NAME:-domain_config}
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-password}
+      DB_POOL_MIN: ${DB_POOL_MIN:-2}
+      DB_POOL_MAX: ${DB_POOL_MAX:-10}
+      REDIS_ENABLED: ${REDIS_ENABLED:-true}
+      REDIS_HOST: redis
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_TTL: ${REDIS_TTL:-3600}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-100}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+    ports:
+      - "${PORT:-3000}:3000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - app-logs:/app/logs
+    networks:
+      - domain-config-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 40s
+
+  mysql:
+    image: mysql:8.0
+    container_name: domain-config-mysql
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-password}
+      MYSQL_DATABASE: ${DB_NAME:-domain_config}
+      MYSQL_USER: ${DB_USER:-root}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-password}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./src/models/migrations/domain.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - domain-config-network
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb3
+      --collation-server=utf8mb3_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-password}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    container_name: domain-config-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - domain-config-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+networks:
+  domain-config-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  redis-data:
+  app-logs:

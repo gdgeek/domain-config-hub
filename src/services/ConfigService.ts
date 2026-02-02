@@ -3,6 +3,8 @@
  * 
  * 配置业务逻辑层
  * 处理配置相关的业务逻辑
+ * 
+ * Enhanced with multilingual support (Requirements: 5.1, 5.2, 5.3, 5.4, 5.5)
  */
 
 import { ConfigRepository } from '../repositories/ConfigRepository';
@@ -11,6 +13,8 @@ import { ConfigAttributes, ConfigCreationAttributes } from '../models/Config';
 import { NotFoundError } from '../errors/NotFoundError';
 import { ConflictError } from '../errors/ConflictError';
 import { logger } from '../config/logger';
+import { TranslationService, TranslationResponse } from './TranslationService';
+import { LanguageResolver } from './LanguageResolver';
 
 /**
  * 配置输入接口
@@ -25,7 +29,7 @@ export interface ConfigInput {
 }
 
 /**
- * 配置输出接口
+ * 配置输出接口（旧版本，保持向后兼容）
  */
 export interface ConfigOutput {
   id: number;
@@ -37,6 +41,27 @@ export interface ConfigOutput {
   permissions: object | null;
   createdAt?: Date;
   updatedAt?: Date;
+}
+
+/**
+ * 配置输出接口（带翻译内容）
+ * 
+ * Requirements: 5.4
+ */
+export interface ConfigWithTranslation {
+  id: number;
+  // Non-translatable fields from configs table
+  links: object | null;
+  permissions: object | null;
+  createdAt: Date;
+  updatedAt: Date;
+  // Translatable fields from translations table
+  title: string;
+  author: string;
+  description: string;
+  keywords: string[];
+  // Metadata
+  language: string;
 }
 
 /**
@@ -62,12 +87,162 @@ export interface Pagination {
 
 /**
  * ConfigService 类
+ * 
+ * Enhanced with multilingual support
  */
 export class ConfigService {
   constructor(
     private configRepository: ConfigRepository,
-    private domainRepository: DomainRepository
+    private domainRepository: DomainRepository,
+    private translationService?: TranslationService,
+    private languageResolver?: LanguageResolver
   ) {}
+
+  /**
+   * 通过 ID 获取配置（带翻译）
+   * 
+   * 合并配置的非翻译字段和指定语言的翻译内容
+   * 
+   * Requirements: 5.1, 5.4, 5.5
+   * 
+   * @param id - 配置 ID
+   * @param languageCode - 可选的语言代码，如果未指定则使用默认语言
+   * @returns 带翻译的配置对象
+   * @throws NotFoundError - 配置不存在
+   */
+  async getConfigById(id: number, languageCode?: string): Promise<ConfigWithTranslation> {
+    // 检查是否启用了多语言支持
+    if (!this.translationService || !this.languageResolver) {
+      throw new Error('Multilingual support is not enabled');
+    }
+
+    logger.info('查询配置（多语言）', { id, languageCode });
+
+    // 1. 获取基础配置
+    const config = await this.configRepository.findById(id);
+    if (!config) {
+      throw new NotFoundError(`Config not found: ${id}`, 'CONFIG_NOT_FOUND');
+    }
+
+    // 2. 确定语言
+    const lang = languageCode || this.languageResolver.getDefaultLanguage();
+
+    // 3. 获取翻译（带降级）
+    const { translation, actualLanguage } = await this.translationService.getTranslationWithFallback(id, lang);
+
+    // 4. 合并配置和翻译
+    return this.mergeConfigWithTranslation(config, translation, actualLanguage);
+  }
+
+  /**
+   * 通过域名获取配置（带翻译）
+   * 
+   * 查找域名对应的配置，并返回指定语言的翻译内容
+   * 
+   * Requirements: 5.2, 5.4, 5.5
+   * 
+   * @param domain - 域名
+   * @param languageCode - 可选的语言代码，如果未指定则使用默认语言
+   * @returns 带翻译的配置对象
+   * @throws NotFoundError - 域名或配置不存在
+   */
+  async getConfigByDomain(domain: string, languageCode?: string): Promise<ConfigWithTranslation> {
+    // 检查是否启用了多语言支持
+    if (!this.translationService || !this.languageResolver) {
+      throw new Error('Multilingual support is not enabled');
+    }
+
+    logger.info('通过域名查询配置（多语言）', { domain, languageCode });
+
+    // 1. 获取域名记录
+    const domainRecord = await this.domainRepository.findByDomain(domain);
+    if (!domainRecord) {
+      throw new NotFoundError(`Domain not found: ${domain}`, 'DOMAIN_NOT_FOUND');
+    }
+
+    // 2. 通过配置 ID 获取配置和翻译
+    return this.getConfigById(domainRecord.configId, languageCode);
+  }
+
+  /**
+   * 获取配置列表（带翻译）
+   * 
+   * 返回所有配置的指定语言翻译版本
+   * 
+   * Requirements: 5.3, 5.4, 5.5
+   * 
+   * @param languageCode - 可选的语言代码，如果未指定则使用默认语言
+   * @returns 带翻译的配置对象数组
+   */
+  async listConfigs(languageCode?: string): Promise<ConfigWithTranslation[]> {
+    // 检查是否启用了多语言支持
+    if (!this.translationService || !this.languageResolver) {
+      throw new Error('Multilingual support is not enabled');
+    }
+
+    logger.info('查询配置列表（多语言）', { languageCode });
+
+    // 1. 获取所有配置
+    const configs = await this.configRepository.findAll({ page: 1, pageSize: 1000 });
+
+    // 2. 确定语言
+    const lang = languageCode || this.languageResolver.getDefaultLanguage();
+
+    // 3. 并行获取所有配置的翻译
+    const results = await Promise.all(
+      configs.map(async config => {
+        try {
+          const { translation, actualLanguage } = await this.translationService!.getTranslationWithFallback(
+            config.id,
+            lang
+          );
+          return this.mergeConfigWithTranslation(config, translation, actualLanguage);
+        } catch (error) {
+          // 如果某个配置没有翻译，记录警告但继续处理其他配置
+          logger.warn('Failed to get translation for config', {
+            configId: config.id,
+            languageCode: lang,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          return null;
+        }
+      })
+    );
+
+    // 4. 过滤掉失败的配置
+    return results.filter((result): result is ConfigWithTranslation => result !== null);
+  }
+
+  /**
+   * 合并配置和翻译
+   * 
+   * 将配置的非翻译字段和翻译的可翻译字段合并为一个对象
+   * 
+   * Requirements: 5.4
+   * 
+   * @param config - 配置对象
+   * @param translation - 翻译对象
+   * @param language - 实际使用的语言代码
+   * @returns 合并后的配置对象
+   */
+  private mergeConfigWithTranslation(
+    config: ConfigAttributes,
+    translation: TranslationResponse,
+    language: string
+  ): ConfigWithTranslation {
+    return {
+      id: config.id,
+      links: config.links,
+      permissions: config.permissions,
+      createdAt: config.createdAt!,
+      updatedAt: config.updatedAt!,
+      title: translation.title,
+      author: translation.author,
+      description: translation.description,
+      keywords: translation.keywords,
+      language,
+    };
+  }
 
   /**
    * 创建配置
@@ -154,6 +329,11 @@ export class ConfigService {
         `无法删除配置，有 ${domainCount} 个域名正在使用此配置`,
         'CONFIG_IN_USE'
       );
+    }
+
+    // 如果启用了多语言支持，失效所有语言的缓存
+    if (this.translationService) {
+      await this.translationService.invalidateAllCachesForConfig(id);
     }
 
     const deleted = await this.configRepository.delete(id);

@@ -26,6 +26,7 @@ import domainRoutes from './routes/DomainRoutes';
 import configRoutes from './routes/ConfigRoutes';
 import adminRoutes from './routes/AdminRoutes';
 import sessionRoutes from './routes/SessionRoutes';
+import translationRoutes, { languagesRouter } from './routes/TranslationRoutes';
 
 /**
  * 创建 Express 应用
@@ -63,6 +64,8 @@ export function createApp(): Express {
   // ============================================================
   app.use(`${config.apiPrefix}/domains`, domainRoutes);
   app.use(`${config.apiPrefix}/configs`, configRoutes);
+  app.use(`${config.apiPrefix}/configs`, translationRoutes);
+  app.use(`${config.apiPrefix}/languages`, languagesRouter);
   app.use(`${config.apiPrefix}/sessions`, sessionRoutes);
   // 保留旧的认证端点以向后兼容（已废弃）
   app.use(`${config.apiPrefix}/auth`, adminRoutes);

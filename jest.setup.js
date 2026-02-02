@@ -12,7 +12,7 @@ process.env.DB_HOST = process.env.DB_HOST || 'localhost';
 process.env.DB_PORT = process.env.DB_PORT || '3306';
 process.env.DB_NAME = process.env.DB_NAME || 'domain_config_test';
 process.env.DB_USER = process.env.DB_USER || 'root';
-process.env.DB_PASSWORD = process.env.DB_PASSWORD || '';
+process.env.DB_PASSWORD = process.env.DB_PASSWORD || 'password';
 
 // 配置 Redis（测试时默认禁用）
 process.env.REDIS_ENABLED = process.env.REDIS_ENABLED || 'false';
@@ -38,16 +38,16 @@ process.env.RATE_LIMIT_MAX = process.env.RATE_LIMIT_MAX || '1000';
 // 全局测试超时设置（可选，已在 jest.config.js 中设置）
 // jest.setTimeout(10000);
 
-// 全局 beforeAll 钩子（如果需要）
-beforeAll(() => {
-  // 可以在这里初始化全局测试资源
-  // 例如：连接测试数据库、启动测试服务器等
+// 全局 beforeAll 钩子 - 初始化测试数据库
+beforeAll(async () => {
+  // 初始化测试数据库（仅在第一次运行时）
+  // 注意：这里不调用 setupTestDatabase，因为每个测试套件会自己管理
+  // 这样可以避免并发问题
 });
 
-// 全局 afterAll 钩子（如果需要）
-afterAll(() => {
-  // 可以在这里清理全局测试资源
-  // 例如：关闭数据库连接、停止测试服务器等
+// 全局 afterAll 钩子 - 清理资源
+afterAll(async () => {
+  // 全局清理（如果需要）
 });
 
 // 全局 beforeEach 钩子（如果需要）

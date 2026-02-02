@@ -3,6 +3,7 @@
  * 
  * 域名管理路由
  * 提供域名的 CRUD 操作，支持配置关联
+ * Enhanced with multilingual support for config queries
  */
 
 import { Router, Request, Response } from 'express';
@@ -12,8 +13,40 @@ import { validateBody, validateParams } from '../middleware/ValidationMiddleware
 import { paginationSchema, idParamSchema } from '../validation/schemas';
 import { NotFoundError } from '../errors/NotFoundError';
 import Joi from 'joi';
+import { createDefaultLanguageResolver } from '../services/LanguageResolver';
+import { TranslationService } from '../services/TranslationService';
+import { ConfigService } from '../services/ConfigService';
+import { ConfigRepository } from '../repositories/ConfigRepository';
+import { DomainRepository } from '../repositories/DomainRepository';
+import Translation from '../models/Translation';
+import { RedisCacheManager } from '../services/RedisCacheManager';
+import { getRedisClient, isRedisEnabled } from '../config/redis';
 
 const router = Router();
+
+// Initialize multilingual support
+const languageResolver = createDefaultLanguageResolver();
+let multilingualConfigService: ConfigService | null = null;
+
+// Initialize multilingual config service if Redis is enabled
+if (isRedisEnabled()) {
+  try {
+    const redisClient = getRedisClient();
+    if (redisClient) {
+      const cacheManager = new RedisCacheManager(redisClient);
+      const translationService = new TranslationService(Translation, cacheManager, languageResolver);
+      
+      multilingualConfigService = new ConfigService(
+        require('../repositories/ConfigRepository').default as ConfigRepository,
+        require('../repositories/DomainRepository').default as DomainRepository,
+        translationService,
+        languageResolver
+      );
+    }
+  } catch (error) {
+    console.warn('Failed to initialize multilingual support:', error);
+  }
+}
 
 /**
  * 创建域名验证模式
@@ -91,6 +124,18 @@ const updateDomainSchema = Joi.object({
  *           type: string
  *         description: 按 URL 查询（与 domain 参数相同，保持向后兼容），返回单个对象
  *       - in: query
+ *         name: lang
+ *         schema:
+ *           type: string
+ *           example: en-us
+ *         description: 语言代码（可选，支持 zh-cn, en-us, ja-jp，仅在查询单个域名时有效）
+ *       - in: header
+ *         name: Accept-Language
+ *         schema:
+ *           type: string
+ *           example: en-US,en;q=0.9
+ *         description: 接受的语言（可选，优先级低于 lang 查询参数，仅在查询单个域名时有效）
+ *       - in: query
  *         name: page
  *         schema:
  *           type: integer
@@ -108,6 +153,11 @@ const updateDomainSchema = Joi.object({
  *     responses:
  *       200:
  *         description: 域名列表或单个域名对象
+ *         headers:
+ *           X-Content-Language:
+ *             schema:
+ *               type: string
+ *             description: 返回内容的实际语言代码（仅在查询单个域名时返回）
  *         content:
  *           application/json:
  *             schema:
@@ -137,6 +187,34 @@ router.get(
     // 如果提供了 domain 或 url 参数，查询单个域名并返回对象
     const searchDomain = domain || url;
     if (searchDomain) {
+      // Try to use multilingual service if available
+      if (multilingualConfigService) {
+        try {
+          const languageCode = languageResolver.resolveLanguage(req);
+          const result = await multilingualConfigService.getConfigByDomain(searchDomain, languageCode);
+          
+          // Set X-Content-Language header
+          res.setHeader('X-Content-Language', result.language);
+          
+          // Return single object (not array) with domain info
+          res.json({ 
+            data: {
+              domain: searchDomain,
+              config: result
+            }
+          });
+          return;
+        } catch (error) {
+          // If it's a NotFoundError, rethrow it
+          if (error instanceof NotFoundError) {
+            throw error;
+          }
+          // Otherwise fall back to non-multilingual service
+          console.warn('Multilingual service failed, falling back to default:', error);
+        }
+      }
+      
+      // Fall back to non-multilingual service
       const result = await domainService.getByDomain(searchDomain);
       
       if (!result) {
