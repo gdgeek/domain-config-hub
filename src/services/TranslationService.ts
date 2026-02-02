@@ -378,8 +378,11 @@ export class TranslationService {
         missingFields.push(field);
       } else if (typeof value === 'string' && value.trim() === '') {
         missingFields.push(field);
-      } else if (Array.isArray(value) && value.length === 0) {
-        missingFields.push(field);
+      } else if (Array.isArray(value)) {
+        // 检查数组是否为空，或者所有元素都是空字符串/只包含空格
+        if (value.length === 0 || value.every(item => typeof item === 'string' && item.trim() === '')) {
+          missingFields.push(field);
+        }
       }
     }
 
