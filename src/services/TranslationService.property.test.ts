@@ -91,10 +91,14 @@ describe('TranslationService - Property-Based Tests', () => {
   const supportedLanguageArbitrary = fc.constantFrom('zh-cn', 'en-us', 'ja-jp', 'ZH-CN', 'EN-US', 'JA-JP');
   const unsupportedLanguageArbitrary = fc.constantFrom('fr-fr', 'de-de', 'es-es', 'xx-xx');
   
-  const titleArbitrary = fc.string({ minLength: 1, maxLength: 200 });
-  const authorArbitrary = fc.string({ minLength: 1, maxLength: 100 });
-  const descriptionArbitrary = fc.string({ minLength: 1, maxLength: 1000 });
-  const keywordsArbitrary = fc.array(fc.string({ minLength: 1, maxLength: 50 }), { minLength: 1, maxLength: 10 });
+  // Generate non-whitespace strings by filtering out whitespace-only strings
+  const nonEmptyStringArbitrary = (minLength: number, maxLength: number) =>
+    fc.string({ minLength, maxLength }).filter(s => s.trim().length > 0);
+  
+  const titleArbitrary = nonEmptyStringArbitrary(1, 200);
+  const authorArbitrary = nonEmptyStringArbitrary(1, 100);
+  const descriptionArbitrary = nonEmptyStringArbitrary(1, 1000);
+  const keywordsArbitrary = fc.array(nonEmptyStringArbitrary(1, 50), { minLength: 1, maxLength: 10 });
 
   const validTranslationDataArbitrary = fc.record({
     languageCode: supportedLanguageArbitrary,
