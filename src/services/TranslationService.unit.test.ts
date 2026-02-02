@@ -68,8 +68,9 @@ describe('TranslationService - Unit Tests', () => {
 
   beforeEach(async () => {
     if (dbConnected) {
-      await Translation.destroy({ where: {}, truncate: true, cascade: true });
-      await Config.destroy({ where: {}, truncate: true, cascade: true });
+      // 先删除 translations（子表），再删除 configs（父表）
+      await Translation.destroy({ where: {}, force: true });
+      await Config.destroy({ where: {}, force: true });
     }
     if (redisConnected) {
       await redisClient.flushdb();
