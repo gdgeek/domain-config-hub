@@ -10,10 +10,11 @@
 
 - 🚀 **RESTful API**: 完整的域名和配置 CRUD 接口
 - 🏗️ **双表架构**: 域名表和配置表分离，支持多域名共享配置
+- 🌍 **多语言支持**: 完整的国际化内容管理，支持 Accept-Language 自动协商
 - 🎨 **Web 管理界面**: 简洁美观的管理后台
 - 🔐 **权限管理**: 灵活的 JSON 权限配置系统
 - 💾 **数据持久化**: MySQL 数据库存储
-- ⚡ **Redis 缓存**: 可选的缓存层提升性能
+- ⚡ **Redis 缓存**: 可选的缓存层提升性能，支持多语言内容缓存
 - 📊 **监控指标**: Prometheus 格式的监控数据
 - 📝 **API 文档**: Swagger/OpenAPI 文档
 - 🔒 **安全防护**: 限流、错误处理、日志记录
@@ -42,16 +43,20 @@ docker run -d \
 
 - **domains 表**: 存储域名信息，每个域名关联一个配置
 - **configs 表**: 存储配置内容（title、author、description、keywords、links、permissions 等）
+- **translations 表**: 存储多语言翻译内容，支持配置的国际化
 
 这种设计的优势:
 - ✅ 多个域名可以共享同一个配置
 - ✅ 配置更新时，所有关联域名自动生效
+- ✅ 支持多语言内容管理，每个配置可有多个语言版本
+- ✅ 自动语言协商，根据 Accept-Language 返回最佳匹配
 - ✅ 更灵活的数据管理和维护
 
 ## 📋 目录
 
 - [快速开始](#快速开始)
 - [功能说明](#功能说明)
+- [多语言支持](#多语言支持)
 - [API 文档](#api-文档)
 - [管理界面](#管理界面)
 - [数据库迁移](#数据库迁移)
@@ -96,11 +101,14 @@ cp .env.example .env
 # 创建数据库
 mysql -u root -p -e "CREATE DATABASE bujiaban CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci;"
 
-# 导入表结构
-mysql -u root -p bujiaban < migrations/domain.sql
+# 导入完整表结构（包含多语言支持）
+mysql -u root -p bujiaban < migrations/init_with_translations.sql
 
-# 执行迁移（添加 permissions 字段）
+# 或者执行迁移（从旧版本升级）
 ./scripts/migrate.sh migrations/001_add_permissions_field.sql
+./scripts/migrate.sh migrations/002_split_to_two_tables.sql
+./scripts/migrate.sh migrations/004_create_translations_table.sql
+./scripts/migrate.sh migrations/005_migrate_config_data_to_translations.sql
 ```
 
 5. **启动服务**
@@ -138,27 +146,108 @@ npm start
    - 一个配置可被多个域名共享
    - 配置包含: title、author、description、keywords、links、permissions
 
-3. **权限配置**
+3. **多语言内容管理** 🌍
+   - 支持多语言翻译内容（zh-cn、en-us、ja-jp）
+   - 自动语言协商（基于 Accept-Language 请求头）
+   - 语言回退机制（请求语言不存在时返回默认语言）
+   - 翻译内容缓存（Redis）
+   - 完整的翻译 CRUD API
+   - 语言元数据查询接口
+
+4. **权限配置**
    - 灵活的 JSON 权限结构
    - 支持基础权限（读、写、管理）
    - 支持功能开关（评论、上传、API 访问等）
    - 支持角色和限制配置
 
-3. **缓存支持**
+5. **缓存支持**
    - 可选的 Redis 缓存
    - 自动缓存失效
+   - 多语言内容缓存
    - 提升查询性能
 
-4. **监控和日志**
+6. **监控和日志**
    - 结构化 JSON 日志
    - Prometheus 监控指标
    - 请求追踪（Request ID）
 
-5. **安全防护**
+7. **安全防护**
    - API 限流
    - 输入验证
    - 错误处理
    - 管理界面密码保护
+
+## 🌍 多语言支持
+
+### 功能特性
+
+- ✅ **多语言内容存储**: 为每个配置存储多个语言版本的内容
+- ✅ **自动语言协商**: 根据 `Accept-Language` 请求头自动返回最佳匹配语言
+- ✅ **语言回退机制**: 请求语言不存在时自动回退到默认语言（zh-cn）
+- ✅ **支持的语言**: 中文简体（zh-cn）、英语（en-us）、日语（ja-jp）
+- ✅ **Redis 缓存**: 翻译内容自动缓存，提升性能
+- ✅ **完整的 API**: 翻译内容的增删改查接口
+
+### 快速使用
+
+**1. 创建翻译内容**
+
+```bash
+# 为配置 ID=1 创建中文翻译
+curl -X POST http://localhost:3000/api/v1/translations \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{
+    "configId": 1,
+    "languageCode": "zh-cn",
+    "title": "示例网站",
+    "author": "张三",
+    "description": "这是一个示例网站",
+    "keywords": ["示例", "网站", "测试"]
+  }'
+
+# 创建英文翻译
+curl -X POST http://localhost:3000/api/v1/translations \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{
+    "configId": 1,
+    "languageCode": "en-us",
+    "title": "Example Site",
+    "author": "John Doe",
+    "description": "This is an example website",
+    "keywords": ["example", "website", "test"]
+  }'
+```
+
+**2. 获取多语言配置**
+
+```bash
+# 请求中文内容
+curl http://localhost:3000/api/v1/configs/1 \
+  -H "Accept-Language: zh-CN"
+
+# 请求英文内容
+curl http://localhost:3000/api/v1/configs/1 \
+  -H "Accept-Language: en-US"
+
+# 请求日文内容（如果不存在，返回默认语言）
+curl http://localhost:3000/api/v1/configs/1 \
+  -H "Accept-Language: ja-JP"
+```
+
+**3. 查询支持的语言**
+
+```bash
+curl http://localhost:3000/api/v1/languages
+```
+
+### 详细文档
+
+- [多语言 API 文档](docs/MULTILINGUAL_API.md)
+- [多语言使用示例](docs/MULTILINGUAL_EXAMPLES.md)
+- [多语言迁移指南](docs/MULTILINGUAL_MIGRATION.md)
+- [多语言测试报告](docs/MULTILINGUAL_TEST_SUMMARY.md)
 
 ## 📚 API 文档
 
@@ -219,9 +308,10 @@ DELETE /api/v1/domains/:id
 GET /api/v1/configs?page=1&pageSize=20
 ```
 
-2. **通过 ID 查询配置**
+2. **通过 ID 查询配置（支持多语言）**
 ```http
 GET /api/v1/configs/:id
+Accept-Language: zh-CN,en-US;q=0.9
 ```
 
 3. **创建配置**
@@ -264,6 +354,86 @@ Content-Type: application/json
 5. **删除配置**
 ```http
 DELETE /api/v1/configs/:id
+```
+
+#### 翻译管理 API 🌍
+
+1. **创建翻译**
+```http
+POST /api/v1/translations
+Content-Type: application/json
+Authorization: Bearer YOUR_TOKEN
+
+{
+  "configId": 1,
+  "languageCode": "zh-cn",
+  "title": "示例网站",
+  "author": "张三",
+  "description": "这是一个示例网站",
+  "keywords": ["示例", "网站"]
+}
+```
+
+2. **获取翻译**
+```http
+GET /api/v1/translations/:configId/:languageCode
+```
+
+3. **更新翻译**
+```http
+PUT /api/v1/translations/:id
+Content-Type: application/json
+Authorization: Bearer YOUR_TOKEN
+
+{
+  "title": "更新的标题",
+  "description": "更新的描述"
+}
+```
+
+4. **删除翻译**
+```http
+DELETE /api/v1/translations/:id
+Authorization: Bearer YOUR_TOKEN
+```
+
+5. **查询配置的所有翻译**
+```http
+GET /api/v1/translations/config/:configId
+```
+
+#### 语言元数据 API
+
+**查询支持的语言列表**
+```http
+GET /api/v1/languages
+```
+
+响应示例：
+```json
+{
+  "success": true,
+  "data": {
+    "defaultLanguage": "zh-cn",
+    "supportedLanguages": [
+      {
+        "code": "zh-cn",
+        "name": "简体中文",
+        "englishName": "Simplified Chinese"
+      },
+      {
+        "code": "en-us",
+        "name": "English",
+        "englishName": "English"
+      },
+      {
+        "code": "ja-jp",
+        "name": "日本語",
+        "englishName": "Japanese"
+      }
+    ]
+  }
+}
 ```
 
 ### 完整 API 文档
@@ -309,32 +479,47 @@ ADMIN_PASSWORD=admin123
 
 ## 🗄️ 数据库架构
 
-### 双表设计
+### 三表设计
 
-本服务使用双表架构:
+本服务使用三表架构:
 
 **domains 表**:
 - `id`: 主键
 - `domain`: 域名（唯一）
 - `config_id`: 外键，关联到 configs 表
+- `homepage`: 主页 URL（可选）
 
 **configs 表**:
 - `id`: 主键
-- `title`: 网站标题
-- `author`: 网站作者
-- `description`: 网站描述
-- `keywords`: 网站关键词
+- `title`: 网站标题（默认语言）
+- `author`: 网站作者（默认语言）
+- `description`: 网站描述（默认语言）
+- `keywords`: 网站关键词（默认语言）
 - `links`: 链接配置（JSON）
 - `permissions`: 权限配置（JSON）
+
+**translations 表** 🌍:
+- `id`: 主键
+- `config_id`: 外键，关联到 configs 表
+- `language_code`: 语言代码（zh-cn, en-us, ja-jp）
+- `title`: 翻译的标题
+- `author`: 翻译的作者
+- `description`: 翻译的描述
+- `keywords`: 翻译的关键词（JSON 数组）
+- 唯一约束：`(config_id, language_code)`
 
 ### 数据库迁移
 
 ```bash
-# 执行迁移到双表架构
+# 执行完整迁移（包含多语言支持）
+./scripts/migrate.sh migrations/001_add_permissions_field.sql
 ./scripts/migrate.sh migrations/002_split_to_two_tables.sql
+./scripts/migrate.sh migrations/003_add_homepage_to_domains.sql
+./scripts/migrate.sh migrations/004_create_translations_table.sql
+./scripts/migrate.sh migrations/005_migrate_config_data_to_translations.sql
 
-# 回滚迁移
-./scripts/migrate.sh --rollback migrations/rollback_002.sql
+# 或使用完整初始化脚本
+mysql -u root -p bujiaban < migrations/init_with_translations.sql
 ```
 
 ### 详细说明
@@ -345,6 +530,7 @@ ADMIN_PASSWORD=admin123
 - [数据库迁移快速开始](docs/architecture/DATABASE_MIGRATION_QUICKSTART.md)
 - [完整迁移指南](migrations/README.md)
 - [权限配置使用指南](docs/architecture/PERMISSIONS_GUIDE.md)
+- [多语言迁移指南](docs/MULTILINGUAL_MIGRATION.md) 🌍
 
 ## ⚙️ 配置说明
 
@@ -364,7 +550,7 @@ DB_NAME=bujiaban
 DB_USER=root
 DB_PASSWORD=password
 
-# Redis 配置（可选）
+# Redis 配置（可选，推荐启用以支持多语言缓存）
 REDIS_ENABLED=true
 REDIS_HOST=localhost
 REDIS_PORT=6379
@@ -403,7 +589,7 @@ RATE_LIMIT_MAX=100
 ### 运行测试
 
 ```bash
-# 运行所有测试
+# 运行所有测试（895 个测试用例）
 npm test
 
 # 运行测试并生成覆盖率报告
@@ -411,6 +597,11 @@ npm run test:coverage
 
 # 运行特定测试
 npm test -- --testPathPattern=Domain
+
+# 运行多语言相关测试
+npm test -- --testPathPattern=Translation
+npm test -- --testPathPattern=LanguageResolver
+npm test -- --testPathPattern=multilingual
 ```
 
 ### 代码规范
