@@ -859,9 +859,27 @@ describe('TranslationService - Property-Based Tests', () => {
             // Create config
             const config = await Config.create({ links: {}, permissions: {} });
 
-            // Create multiple translations for the config
+            // Ensure unique language codes by using a Set to track used languages
+            const uniqueTranslations: typeof translationsData = [];
+            const usedLanguages = new Set<string>();
+            
+            for (const data of translationsData) {
+              const normalizedLang = languageResolver.normalizeLanguageCode(data.languageCode);
+              if (!usedLanguages.has(normalizedLang)) {
+                uniqueTranslations.push(data);
+                usedLanguages.add(normalizedLang);
+              }
+            }
+
+            // Skip if no unique translations
+            if (uniqueTranslations.length === 0) {
+              await Config.destroy({ where: { id: config.id } });
+              return;
+            }
+
+            // Create multiple translations for the config with unique language codes
             const createdTranslations = await Promise.all(
-              translationsData.map(data =>
+              uniqueTranslations.map(data =>
                 service.createTranslation({
                   configId: config.id,
                   ...data,
