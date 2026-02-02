@@ -25,8 +25,6 @@ import Redis from 'ioredis';
 const router = Router();
 
 // Initialize services
-let translationService: ReturnType<typeof createTranslationService>;
-
 // Create a mock Redis client if Redis is not enabled
 const redisClient = isRedisEnabled() && getRedisClient() 
   ? getRedisClient()! 
@@ -34,7 +32,7 @@ const redisClient = isRedisEnabled() && getRedisClient()
 
 const cacheManager = new RedisCacheManager(redisClient);
 const languageResolver = createDefaultLanguageResolver();
-translationService = createTranslationService(cacheManager, languageResolver);
+const translationService = createTranslationService(cacheManager, languageResolver);
 
 /**
  * @swagger
