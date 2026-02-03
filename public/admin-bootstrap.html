@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>域名配置管理系统</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .main-container { margin-top: 20px; margin-bottom: 20px; }
+        .card { box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .navbar-brand { font-weight: bold; }
+        .table-actions { white-space: nowrap; }
+        .keyword-badge { margin: 2px; }
+        .login-card { max-width: 400px; margin: 100px auto; }
+    </style>
+</head>
+<body>
+    <!-- 登录界面 -->
+    <div id="loginContainer" class="container">
+        <div class="card login-card">
+            <div class="card-body">
+                <h3 class="card-title text-center mb-4">
+                    <i class="bi bi-shield-lock"></i> 管理员登录
+                </h3>
+                <form id="loginForm">
+                    <div class="mb-3">
+                        <label class="form-label">管理密码</label>
+                        <input type="password" class="form-control" id="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">登录</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主界面 -->
+    <div id="mainContainer" class="container-fluid main-container" style="display: none;">
+        <!-- 导航栏 -->
+        <nav class="navbar navbar-dark bg-dark rounded mb-3">
+            <div class="container-fluid">
+                <span class="navbar-brand">
+                    <i class="bi bi-gear-fill"></i> 域名配置管理系统
+                </span>
+                <button class="btn btn-outline-light btn-sm" onclick="logout()">
+                    <i class="bi bi-box-arrow-right"></i> 退出
+                </button>
+            </div>
+        </nav>
+
+        <!-- 标签页 -->
+        <ul class="nav nav-tabs mb-3" id="mainTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="configs-tab" data-bs-toggle="tab" data-bs-target="#configs" type="button">
+                    <i class="bi bi-file-text"></i> 配置管理
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="domains-tab" data-bs-toggle="tab" data-bs-target="#domains" type="button">
+                    <i class="bi bi-globe"></i> 域名管理
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="translations-tab" data-bs-toggle="tab" data-bs-target="#translations" type="button" onclick="loadConfigsForTranslationSelect()">
+                    <i class="bi bi-translate"></i> 翻译管理
+                </button>
+            </li>
+        </ul>
+
+        <!-- 标签页内容 -->
+        <div class="tab-content" id="mainTabContent">
+            <!-- 配置管理 -->
+            <div class="tab-pane fade show active" id="configs" role="tabpanel">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-file-text"></i> 配置列表</h5>
+                        <button class="btn btn-success btn-sm" onclick="showCreateConfigModal()">
+                            <i class="bi bi-plus-circle"></i> 添加配置
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="configAlert"></div>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>标题</th>
+                                        <th>作者</th>
+                                        <th>描述</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="configTableBody">
+                                    <tr><td colspan="5" class="text-center">加载中...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 域名管理 -->
+            <div class="tab-pane fade" id="domains" role="tabpanel">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-globe"></i> 域名列表</h5>
+                        <button class="btn btn-success btn-sm" onclick="showCreateDomainModal()">
+                            <i class="bi bi-plus-circle"></i> 添加域名
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="domainAlert"></div>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>域名</th>
+                                        <th>主页</th>
+                                        <th>配置ID</th>
+                                        <th>标题</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="domainTableBody">
+                                    <tr><td colspan="6" class="text-center">加载中...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 翻译管理 -->
+            <div class="tab-pane fade" id="translations" role="tabpanel">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-translate"></i> 翻译列表</h5>
+                        <button class="btn btn-success btn-sm" onclick="showCreateTranslationModal()">
+                            <i class="bi bi-plus-circle"></i> 添加翻译
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="translationAlert"></div>
+                        <div class="mb-3">
+                            <label class="form-label">选择配置</label>
+                            <select class="form-select" id="translationConfigFilter" onchange="loadTranslations()">
+                                <option value="">请选择配置...</option>
+                            </select>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>语言</th>
+                                        <th>标题</th>
+                                        <th>作者</th>
+                                        <th>描述</th>
+                                        <th>关键词</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="translationTableBody">
+                                    <tr><td colspan="7" class="text-center">请选择配置查看翻译</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 配置模态框 -->
+    <div class="modal fade" id="configModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="configModalTitle">添加配置</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="configForm">
+                    <div class="modal-body">
+                        <input type="hidden" id="configId">
+                        <div class="mb-3">
+                            <label class="form-label">标题</label>
+                            <input type="text" class="form-control" id="configTitle">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">作者</label>
+                            <input type="text" class="form-control" id="configAuthor">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">描述</label>
+                            <textarea class="form-control" id="configDescription" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">关键词 (逗号分隔)</label>
+                            <input type="text" class="form-control" id="configKeywords">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="submit" class="btn btn-primary">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 域名模态框 -->
+    <div class="modal fade" id="domainModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="domainModalTitle">添加域名</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="domainForm">
+                    <div class="modal-body">
+                        <input type="hidden" id="domainId">
+                        <div class="mb-3">
+                            <label class="form-label">域名 *</label>
+                            <input type="text" class="form-control" id="domainName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">主页 URL</label>
+                            <input type="url" class="form-control" id="domainHomepage">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">关联配置 *</label>
+                            <select class="form-select" id="domainConfigId" required>
+                                <option value="">请选择配置</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="submit" class="btn btn-primary">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 翻译模态框 -->
+    <div class="modal fade" id="translationModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="translationModalTitle">添加翻译</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="translationForm">
+                    <div class="modal-body">
+                        <input type="hidden" id="translationId">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">配置 *</label>
+                                <select class="form-select" id="translationConfigId" required>
+                                    <option value="">请选择配置</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">语言 *</label>
+                                <select class="form-select" id="translationLanguageCode" required>
+                                    <option value="">请选择语言</option>
+                                    <option value="zh-cn">🇨🇳 简体中文</option>
+                                    <option value="en-us">🇺🇸 English</option>
+                                    <option value="ja-jp">🇯🇵 日本語</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">标题 *</label>
+                            <input type="text" class="form-control" id="translationTitle" required maxlength="200">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">作者 *</label>
+                            <input type="text" class="form-control" id="translationAuthor" required maxlength="100">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">描述 *</label>
+                            <textarea class="form-control" id="translationDescription" required maxlength="1000" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">关键词 * (每行一个)</label>
+                            <textarea class="form-control" id="translationKeywords" required rows="3" placeholder="关键词1&#10;关键词2&#10;关键词3"></textarea>
+                            <small class="text-muted">每行输入一个关键词</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="submit" class="btn btn-primary">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let authToken = '';
+        let configModal, domainModal, translationModal;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            configModal = new bootstrap.Modal(document.getElementById('configModal'));
+            domainModal = new bootstrap.Modal(document.getElementById('domainModal'));
+            translationModal = new bootstrap.Modal(document.getElementById('translationModal'));
+            
+            const savedToken = localStorage.getItem('adminToken');
+            if (savedToken) {
+                authToken = savedToken;
+                showMainContainer();
+                loadConfigs();
+            }
+        });
+
+        // 登录
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const password = document.getElementById('password').value;
+            try {
+                const response = await fetch('/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    authToken = data.token;
+                    localStorage.setItem('adminToken', authToken);
+                    showMainContainer();
+                    loadConfigs();
+                } else {
+                    showAlert('loginContainer', '密码错误', 'danger');
+                }
+            } catch (error) {
+                showAlert('loginContainer', '登录失败', 'danger');
+            }
+        });
+
+        function showMainContainer() {
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('mainContainer').style.display = 'block';
+        }
+
+        function logout() {
+            localStorage.removeItem('adminToken');
+            location.reload();
+        }
+
+        function showAlert(containerId, message, type) {
+            const container = document.getElementById(containerId);
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type} alert-dismissible fade show`;
+            alert.innerHTML = `${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+            container.insertBefore(alert, container.firstChild);
+            setTimeout(() => alert.remove(), 3000);
+        }
+
+        const languageNames = {
+            'zh-cn': '🇨🇳 简体中文',
+            'en-us': '🇺🇸 English',
+            'ja-jp': '🇯🇵 日本語'
+        };
+
+        // 配置管理
+        async function loadConfigs() {
+            try {
+                const response = await fetch('/api/v1/configs?pageSize=100', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const result = await response.json();
+                const configs = result.data || [];
+                
+                document.getElementById('configTableBody').innerHTML = configs.length ? configs.map(c => `
+                    <tr>
+                        <td>${c.id}</td>
+                        <td>${c.title || '-'}</td>
+                        <td>${c.author || '-'}</td>
+                        <td>${c.description || '-'}</td>
+                        <td class="table-actions">
+                            <button class="btn btn-sm btn-primary" onclick="editConfig(${c.id})">
+                                <i class="bi bi-pencil"></i> 编辑
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteConfig(${c.id})">
+                                <i class="bi bi-trash"></i> 删除
+                            </button>
+                        </td>
+                    </tr>
+                `).join('') : '<tr><td colspan="5" class="text-center">暂无数据</td></tr>';
+            } catch (error) {
+                showAlert('configs', '加载失败', 'danger');
+            }
+        }
+
+        function showCreateConfigModal() {
+            document.getElementById('configModalTitle').textContent = '添加配置';
+            document.getElementById('configForm').reset();
+            document.getElementById('configId').value = '';
+            configModal.show();
+        }
+
+        async function editConfig(id) {
+            try {
+                const response = await fetch(`/api/v1/configs/${id}`);
+                const result = await response.json();
+                const config = result.data;
+                
+                document.getElementById('configModalTitle').textContent = '编辑配置';
+                document.getElementById('configId').value = config.id;
+                document.getElementById('configTitle').value = config.title || '';
+                document.getElementById('configAuthor').value = config.author || '';
+                document.getElementById('configDescription').value = config.description || '';
+                document.getElementById('configKeywords').value = config.keywords || '';
+                configModal.show();
+            } catch (error) {
+                showAlert('configs', '加载失败', 'danger');
+            }
+        }
+
+        async function deleteConfig(id) {
+            if (!confirm('确定要删除此配置吗？')) return;
+            try {
+                await fetch(`/api/v1/configs/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                showAlert('configs', '删除成功', 'success');
+                loadConfigs();
+            } catch (error) {
+                showAlert('configs', '删除失败', 'danger');
+            }
+        }
+
+        document.getElementById('configForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('configId').value;
+            const data = {
+                title: document.getElementById('configTitle').value,
+                author: document.getElementById('configAuthor').value,
+                description: document.getElementById('configDescription').value,
+                keywords: document.getElementById('configKeywords').value
+            };
+            try {
+                await fetch(id ? `/api/v1/configs/${id}` : '/api/v1/configs', {
+                    method: id ? 'PUT' : 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(data)
+                });
+                showAlert('configs', id ? '更新成功' : '创建成功', 'success');
+                configModal.hide();
+                loadConfigs();
+            } catch (error) {
+                showAlert('configs', '操作失败', 'danger');
+            }
+        });
+
+        // 域名管理
+        async function loadDomains() {
+            try {
+                const response = await fetch('/api/v1/domains?pageSize=100');
+                const result = await response.json();
+                const domains = result.data || [];
+                
+                document.getElementById('domainTableBody').innerHTML = domains.length ? domains.map(d => `
+                    <tr>
+                        <td>${d.id}</td>
+                        <td>${d.domain}</td>
+                        <td>${d.homepage || '-'}</td>
+                        <td>${d.configId}</td>
+                        <td>${d.title || '-'}</td>
+                        <td class="table-actions">
+                            <button class="btn btn-sm btn-primary" onclick="editDomain(${d.id})">
+                                <i class="bi bi-pencil"></i> 编辑
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteDomain(${d.id})">
+                                <i class="bi bi-trash"></i> 删除
+                            </button>
+                        </td>
+                    </tr>
+                `).join('') : '<tr><td colspan="6" class="text-center">暂无数据</td></tr>';
+            } catch (error) {
+                showAlert('domains', '加载失败', 'danger');
+            }
+        }
+
+        async function showCreateDomainModal() {
+            await loadConfigsForSelect();
+            document.getElementById('domainModalTitle').textContent = '添加域名';
+            document.getElementById('domainForm').reset();
+            document.getElementById('domainId').value = '';
+            document.getElementById('domainName').disabled = false;
+            domainModal.show();
+        }
+
+        async function editDomain(id) {
+            try {
+                await loadConfigsForSelect();
+                const response = await fetch(`/api/v1/domains/${id}`);
+                const result = await response.json();
+                const domain = result.data;
+                
+                document.getElementById('domainModalTitle').textContent = '编辑域名';
+                document.getElementById('domainId').value = domain.id;
+                document.getElementById('domainName').value = domain.domain;
+                document.getElementById('domainName').disabled = true;
+                document.getElementById('domainHomepage').value = domain.homepage || '';
+                document.getElementById('domainConfigId').value = domain.configId;
+                domainModal.show();
+            } catch (error) {
+                showAlert('domains', '加载失败', 'danger');
+            }
+        }
+
+        async function deleteDomain(id) {
+            if (!confirm('确定要删除此域名吗？')) return;
+            try {
+                await fetch(`/api/v1/domains/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                showAlert('domains', '删除成功', 'success');
+                loadDomains();
+            } catch (error) {
+                showAlert('domains', '删除失败', 'danger');
+            }
+        }
+
+        async function loadConfigsForSelect() {
+            try {
+                const response = await fetch('/api/v1/configs?pageSize=100');
+                const result = await response.json();
+                const configs = result.data || [];
+                document.getElementById('domainConfigId').innerHTML = 
+                    '<option value="">请选择配置</option>' +
+                    configs.map(c => `<option value="${c.id}">${c.title || `配置 ${c.id}`}</option>`).join('');
+            } catch (error) {
+                console.error('加载配置列表失败', error);
+            }
+        }
+
+        document.getElementById('domainForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('domainId').value;
+            const data = {
+                domain: document.getElementById('domainName').value,
+                homepage: document.getElementById('domainHomepage').value || null,
+                configId: parseInt(document.getElementById('domainConfigId').value)
+            };
+            try {
+                await fetch(id ? `/api/v1/domains/${id}` : '/api/v1/domains', {
+                    method: id ? 'PUT' : 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(data)
+                });
+                showAlert('domains', id ? '更新成功' : '创建成功', 'success');
+                domainModal.hide();
+                loadDomains();
+            } catch (error) {
+                showAlert('domains', '操作失败', 'danger');
+            }
+        });
+
+        document.getElementById('domains-tab').addEventListener('shown.bs.tab', loadDomains);
+
+        // 翻译管理
+        async function loadTranslations() {
+            const configId = document.getElementById('translationConfigFilter').value;
+            if (!configId) {
+                document.getElementById('translationTableBody').innerHTML = 
+                    '<tr><td colspan="7" class="text-center">请选择配置查看翻译</td></tr>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/translations/config/${configId}`);
+                const result = await response.json();
+                const translations = result.data || [];
+                
+                document.getElementById('translationTableBody').innerHTML = translations.length ? translations.map(t => `
+                    <tr>
+                        <td>${t.id}</td>
+                        <td>${languageNames[t.languageCode] || t.languageCode}</td>
+                        <td>${t.title}</td>
+                        <td>${t.author}</td>
+                        <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">${t.description}</td>
+                        <td>${Array.isArray(t.keywords) ? t.keywords.map(k => 
+                            `<span class="badge bg-secondary keyword-badge">${k}</span>`).join('') : t.keywords}</td>
+                        <td class="table-actions">
+                            <button class="btn btn-sm btn-primary" onclick="editTranslation(${t.id})">
+                                <i class="bi bi-pencil"></i> 编辑
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteTranslation(${t.id}, '${t.languageCode}')">
+                                <i class="bi bi-trash"></i> 删除
+                            </button>
+                        </td>
+                    </tr>
+                `).join('') : '<tr><td colspan="7" class="text-center">暂无翻译数据</td></tr>';
+            } catch (error) {
+                showAlert('translations', '加载失败', 'danger');
+            }
+        }
+
+        async function showCreateTranslationModal() {
+            await loadConfigsForTranslationSelect();
+            document.getElementById('translationModalTitle').textContent = '添加翻译';
+            document.getElementById('translationForm').reset();
+            document.getElementById('translationId').value = '';
+            document.getElementById('translationLanguageCode').disabled = false;
+            document.getElementById('translationConfigId').disabled = false;
+            translationModal.show();
+        }
+
+        async function editTranslation(id) {
+            try {
+                await loadConfigsForTranslationSelect();
+                const response = await fetch(`/api/v1/translations/${id}`);
+                const result = await response.json();
+                const translation = result.data;
+
+                document.getElementById('translationModalTitle').textContent = '编辑翻译';
+                document.getElementById('translationId').value = translation.id;
+                document.getElementById('translationConfigId').value = translation.configId;
+                document.getElementById('translationConfigId').disabled = true;
+                document.getElementById('translationLanguageCode').value = translation.languageCode;
+                document.getElementById('translationLanguageCode').disabled = true;
+                document.getElementById('translationTitle').value = translation.title;
+                document.getElementById('translationAuthor').value = translation.author;
+                document.getElementById('translationDescription').value = translation.description;
+                document.getElementById('translationKeywords').value = Array.isArray(translation.keywords) 
+                    ? translation.keywords.join('\n') : translation.keywords;
+                translationModal.show();
+            } catch (error) {
+                showAlert('translations', '加载失败', 'danger');
+            }
+        }
+
+        async function deleteTranslation(id, languageCode) {
+            if (!confirm(`确定要删除 ${languageNames[languageCode]} 翻译吗？`)) return;
+            try {
+                await fetch(`/api/v1/translations/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                showAlert('translations', '删除成功', 'success');
+                loadTranslations();
+            } catch (error) {
+                showAlert('translations', '删除失败', 'danger');
+            }
+        }
+
+        async function loadConfigsForTranslationSelect() {
+            try {
+                const response = await fetch('/api/v1/configs?pageSize=100');
+                const result = await response.json();
+                const configs = result.data || [];
+                
+                const options = '<option value="">请选择配置</option>' +
+                    configs.map(c => `<option value="${c.id}">${c.title || `配置 ${c.id}`}</option>`).join('');
+                
+                document.getElementById('translationConfigId').innerHTML = options;
+                document.getElementById('translationConfigFilter').innerHTML = 
+                    '<option value="">选择配置...</option>' + configs.map(c => 
+                        `<option value="${c.id}">${c.title || `配置 ${c.id}`}</option>`).join('');
+            } catch (error) {
+                console.error('加载配置列表失败', error);
+            }
+        }
+
+        document.getElementById('translationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('translationId').value;
+            const keywords = document.getElementById('translationKeywords').value
+                .split('\n').map(k => k.trim()).filter(k => k.length > 0);
+
+            const data = {
+                configId: parseInt(document.getElementById('translationConfigId').value),
+                languageCode: document.getElementById('translationLanguageCode').value,
+                title: document.getElementById('translationTitle').value,
+                author: document.getElementById('translationAuthor').value,
+                description: document.getElementById('translationDescription').value,
+                keywords: keywords
+            };
+
+            try {
+                await fetch(id ? `/api/v1/translations/${id}` : '/api/v1/translations', {
+                    method: id ? 'PUT' : 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(data)
+                });
+                showAlert('translations', id ? '更新成功' : '创建成功', 'success');
+                translationModal.hide();
+                loadTranslations();
+            } catch (error) {
+                showAlert('translations', '操作失败', 'danger');
+            }
+        });
+    </script>
+</body>
+</html>
