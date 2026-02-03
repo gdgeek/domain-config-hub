@@ -217,6 +217,7 @@
         <div class="tabs">
             <div class="tab active" onclick="switchTab('configs')">📋 配置管理</div>
             <div class="tab" onclick="switchTab('domains')">🌍 域名管理</div>
+            <div class="tab" onclick="switchTab('translations')">🌐 翻译管理</div>
         </div>
         
         <!-- 配置管理标签页 -->
@@ -268,6 +269,36 @@
                 </thead>
                 <tbody id="domainTableBody">
                     <tr><td colspan="7" style="text-align: center; padding: 40px;">加载中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 翻译管理标签页 -->
+        <div id="translationsTab" class="tab-content">
+            <div id="translationAlert" class="alert"></div>
+            <div class="toolbar">
+                <div class="search-box">
+                    <select id="translationConfigFilter" onchange="loadTranslations()" style="width: 100%; padding: 10px 15px; border: 2px solid #e0e0e0; border-radius: 6px;">
+                        <option value="">选择配置...</option>
+                    </select>
+                </div>
+                <button class="btn btn-success" onclick="showCreateTranslationModal()">➕ 添加翻译</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>配置ID</th>
+                        <th>语言</th>
+                        <th>标题</th>
+                        <th>作者</th>
+                        <th>描述</th>
+                        <th>关键词</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="translationTableBody">
+                    <tr><td colspan="8" style="text-align: center; padding: 40px;">请选择配置查看翻译</td></tr>
                 </tbody>
             </table>
         </div>
@@ -346,6 +377,55 @@
         </div>
     </div>
 
+    <!-- 翻译模态框 -->
+    <div id="translationModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="translationModalTitle">添加翻译</h2>
+                <button class="close-btn" onclick="closeTranslationModal()">&times;</button>
+            </div>
+            <form id="translationForm">
+                <input type="hidden" id="translationId">
+                <div class="form-group">
+                    <label>配置 *</label>
+                    <select id="translationConfigId" required>
+                        <option value="">请选择配置</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>语言 *</label>
+                    <select id="translationLanguageCode" required>
+                        <option value="">请选择语言</option>
+                        <option value="zh-cn">🇨🇳 简体中文 (zh-cn)</option>
+                        <option value="en-us">🇺🇸 English (en-us)</option>
+                        <option value="ja-jp">🇯🇵 日本語 (ja-jp)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>标题 *</label>
+                    <input type="text" id="translationTitle" placeholder="网站标题" required maxlength="200">
+                </div>
+                <div class="form-group">
+                    <label>作者 *</label>
+                    <input type="text" id="translationAuthor" placeholder="作者名称" required maxlength="100">
+                </div>
+                <div class="form-group">
+                    <label>描述 *</label>
+                    <textarea id="translationDescription" placeholder="网站描述" required maxlength="1000" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>关键词 * (每行一个)</label>
+                    <textarea id="translationKeywords" placeholder="关键词1&#10;关键词2&#10;关键词3" required rows="3"></textarea>
+                    <small style="color: #666; font-size: 12px;">每行输入一个关键词</small>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">保存</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeTranslationModal()">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         let authToken = '';
         let allConfigs = [];
@@ -411,6 +491,11 @@
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             event.target.classList.add('active');
             document.getElementById(tab + 'Tab').classList.add('active');
+            
+            // 切换到翻译标签页时加载配置列表
+            if (tab === 'translations') {
+                loadConfigsForTranslationSelect();
+            }
         }
 
         // 加载配置列表
@@ -761,6 +846,177 @@
             alert.className = `alert alert-${type} show`;
             setTimeout(() => alert.classList.remove('show'), 3000);
         }
+
+        // 翻译管理功能
+        const languageNames = {
+            'zh-cn': '🇨🇳 简体中文',
+            'en-us': '🇺🇸 English',
+            'ja-jp': '🇯🇵 日本語'
+        };
+
+        async function loadTranslations() {
+            const configId = document.getElementById('translationConfigFilter').value;
+            if (!configId) {
+                document.getElementById('translationTableBody').innerHTML = 
+                    '<tr><td colspan="8" style="text-align: center; padding: 40px;">请选择配置查看翻译</td></tr>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/translations/config/${configId}`, {
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (!response.ok) throw new Error('加载失败');
+                const result = await response.json();
+                const translations = result.data || [];
+                
+                if (translations.length === 0) {
+                    document.getElementById('translationTableBody').innerHTML = 
+                        '<tr><td colspan="8" style="text-align: center; padding: 40px;">暂无翻译数据</td></tr>';
+                    return;
+                }
+
+                document.getElementById('translationTableBody').innerHTML = translations.map(t => `
+                    <tr>
+                        <td>${t.id}</td>
+                        <td>${t.configId}</td>
+                        <td>${languageNames[t.languageCode] || t.languageCode}</td>
+                        <td>${t.title}</td>
+                        <td>${t.author}</td>
+                        <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${t.description}</td>
+                        <td>${Array.isArray(t.keywords) ? t.keywords.join(', ') : t.keywords}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="editTranslation(${t.id})">编辑</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteTranslation(${t.id}, '${t.languageCode}')">删除</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                showAlert('translationAlert', '加载翻译失败: ' + error.message, 'error');
+            }
+        }
+
+        async function showCreateTranslationModal() {
+            await loadConfigsForTranslationSelect();
+            document.getElementById('translationModalTitle').textContent = '添加翻译';
+            document.getElementById('translationForm').reset();
+            document.getElementById('translationId').value = '';
+            document.getElementById('translationLanguageCode').disabled = false;
+            document.getElementById('translationConfigId').disabled = false;
+            document.getElementById('translationModal').classList.add('active');
+        }
+
+        async function editTranslation(id) {
+            try {
+                const response = await fetch(`/api/v1/translations/${id}`, {
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (!response.ok) throw new Error('加载失败');
+                const result = await response.json();
+                const translation = result.data;
+
+                await loadConfigsForTranslationSelect();
+                document.getElementById('translationModalTitle').textContent = '编辑翻译';
+                document.getElementById('translationId').value = translation.id;
+                document.getElementById('translationConfigId').value = translation.configId;
+                document.getElementById('translationConfigId').disabled = true;
+                document.getElementById('translationLanguageCode').value = translation.languageCode;
+                document.getElementById('translationLanguageCode').disabled = true;
+                document.getElementById('translationTitle').value = translation.title;
+                document.getElementById('translationAuthor').value = translation.author;
+                document.getElementById('translationDescription').value = translation.description;
+                document.getElementById('translationKeywords').value = Array.isArray(translation.keywords) 
+                    ? translation.keywords.join('\n') 
+                    : translation.keywords;
+                document.getElementById('translationModal').classList.add('active');
+            } catch (error) {
+                showAlert('translationAlert', '加载翻译失败: ' + error.message, 'error');
+            }
+        }
+
+        async function deleteTranslation(id, languageCode) {
+            if (!confirm(`确定要删除 ${languageNames[languageCode] || languageCode} 翻译吗？`)) return;
+            try {
+                const response = await fetch(`/api/v1/translations/${id}`, {
+                    method: 'DELETE',
+                    headers: { 
+                        'Authorization': `Bearer ${authToken}`,
+                        'Accept': 'application/json'
+                    }
+                });
+                if (!response.ok && response.status !== 204) throw new Error('删除失败');
+                showAlert('translationAlert', '删除成功', 'success');
+                loadTranslations();
+            } catch (error) {
+                showAlert('translationAlert', '删除失败: ' + error.message, 'error');
+            }
+        }
+
+        function closeTranslationModal() {
+            document.getElementById('translationModal').classList.remove('active');
+        }
+
+        async function loadConfigsForTranslationSelect() {
+            try {
+                const response = await fetch('/api/v1/configs?pageSize=100', {
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (!response.ok) throw new Error('加载失败');
+                const result = await response.json();
+                const configs = result.data || [];
+                
+                document.getElementById('translationConfigId').innerHTML = 
+                    '<option value="">请选择配置</option>' +
+                    configs.map(c => `<option value="${c.id}">${c.title || `配置 ${c.id}`}</option>`).join('');
+                
+                document.getElementById('translationConfigFilter').innerHTML = 
+                    '<option value="">选择配置...</option>' +
+                    configs.map(c => `<option value="${c.id}">${c.title || `配置 ${c.id}`}</option>`).join('');
+            } catch (error) {
+                console.error('加载配置列表失败', error);
+            }
+        }
+
+        document.getElementById('translationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('translationId').value;
+            const keywords = document.getElementById('translationKeywords').value
+                .split('\n')
+                .map(k => k.trim())
+                .filter(k => k.length > 0);
+
+            const formData = {
+                configId: parseInt(document.getElementById('translationConfigId').value),
+                languageCode: document.getElementById('translationLanguageCode').value,
+                title: document.getElementById('translationTitle').value,
+                author: document.getElementById('translationAuthor').value,
+                description: document.getElementById('translationDescription').value,
+                keywords: keywords
+            };
+
+            try {
+                const url = id ? `/api/v1/translations/${id}` : '/api/v1/translations';
+                const method = id ? 'PUT' : 'POST';
+                const response = await fetch(url, {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(formData)
+                });
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error?.message || '操作失败');
+                }
+                showAlert('translationAlert', id ? '更新成功' : '创建成功', 'success');
+                closeTranslationModal();
+                loadTranslations();
+            } catch (error) {
+                showAlert('translationAlert', '操作失败: ' + error.message, 'error');
+            }
+        });
     </script>
 </body>
 </html>
