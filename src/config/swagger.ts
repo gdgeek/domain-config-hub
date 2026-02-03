@@ -46,6 +46,14 @@ const swaggerDefinition = {
       description: '配置内容管理接口',
     },
     {
+      name: 'Translations',
+      description: '多语言翻译管理接口 🌍',
+    },
+    {
+      name: 'Languages',
+      description: '语言元数据接口',
+    },
+    {
       name: 'Sessions',
       description: '会话管理接口（RESTful 认证）',
     },
@@ -564,6 +572,201 @@ const swaggerDefinition = {
           },
         },
       },
+      // 翻译对象
+      Translation: {
+        type: 'object',
+        required: ['id', 'configId', 'languageCode', 'title', 'author', 'description', 'keywords'],
+        properties: {
+          id: {
+            type: 'integer',
+            description: '翻译的唯一标识符',
+            example: 1,
+          },
+          configId: {
+            type: 'integer',
+            description: '关联的配置 ID',
+            example: 1,
+          },
+          languageCode: {
+            type: 'string',
+            description: '语言代码（BCP 47 格式）',
+            example: 'zh-cn',
+            enum: ['zh-cn', 'en-us', 'ja-jp'],
+          },
+          title: {
+            type: 'string',
+            maxLength: 200,
+            description: '翻译的标题',
+            example: '示例网站',
+          },
+          author: {
+            type: 'string',
+            maxLength: 100,
+            description: '翻译的作者',
+            example: '张三',
+          },
+          description: {
+            type: 'string',
+            maxLength: 1000,
+            description: '翻译的描述',
+            example: '这是一个示例网站的描述',
+          },
+          keywords: {
+            type: 'array',
+            items: {
+              type: 'string',
+            },
+            description: '翻译的关键词数组',
+            example: ['示例', '网站', '测试'],
+          },
+          createdAt: {
+            type: 'string',
+            format: 'date-time',
+            description: '创建时间',
+            example: '2024-01-01T00:00:00.000Z',
+          },
+          updatedAt: {
+            type: 'string',
+            format: 'date-time',
+            description: '更新时间',
+            example: '2024-01-01T00:00:00.000Z',
+          },
+        },
+      },
+      // 创建翻译请求
+      CreateTranslationRequest: {
+        type: 'object',
+        required: ['configId', 'languageCode', 'title', 'author', 'description', 'keywords'],
+        properties: {
+          configId: {
+            type: 'integer',
+            description: '关联的配置 ID',
+            example: 1,
+          },
+          languageCode: {
+            type: 'string',
+            description: '语言代码（zh-cn, en-us, ja-jp）',
+            example: 'zh-cn',
+            enum: ['zh-cn', 'en-us', 'ja-jp'],
+          },
+          title: {
+            type: 'string',
+            minLength: 1,
+            maxLength: 200,
+            description: '翻译的标题',
+            example: '示例网站',
+          },
+          author: {
+            type: 'string',
+            minLength: 1,
+            maxLength: 100,
+            description: '翻译的作者',
+            example: '张三',
+          },
+          description: {
+            type: 'string',
+            minLength: 1,
+            maxLength: 1000,
+            description: '翻译的描述',
+            example: '这是一个示例网站的描述',
+          },
+          keywords: {
+            type: 'array',
+            items: {
+              type: 'string',
+              minLength: 1,
+            },
+            minItems: 1,
+            description: '翻译的关键词数组',
+            example: ['示例', '网站', '测试'],
+          },
+        },
+      },
+      // 更新翻译请求
+      UpdateTranslationRequest: {
+        type: 'object',
+        properties: {
+          title: {
+            type: 'string',
+            minLength: 1,
+            maxLength: 200,
+            description: '翻译的标题',
+            example: '更新的标题',
+          },
+          author: {
+            type: 'string',
+            minLength: 1,
+            maxLength: 100,
+            description: '翻译的作者',
+            example: '李四',
+          },
+          description: {
+            type: 'string',
+            minLength: 1,
+            maxLength: 1000,
+            description: '翻译的描述',
+            example: '更新的描述',
+          },
+          keywords: {
+            type: 'array',
+            items: {
+              type: 'string',
+              minLength: 1,
+            },
+            minItems: 1,
+            description: '翻译的关键词数组',
+            example: ['更新', '关键词'],
+          },
+        },
+      },
+      // 语言元数据
+      LanguageMetadata: {
+        type: 'object',
+        properties: {
+          code: {
+            type: 'string',
+            description: '语言代码',
+            example: 'zh-cn',
+          },
+          name: {
+            type: 'string',
+            description: '语言本地名称',
+            example: '简体中文',
+          },
+          englishName: {
+            type: 'string',
+            description: '语言英文名称',
+            example: 'Simplified Chinese',
+          },
+        },
+      },
+      // 语言列表响应
+      LanguagesResponse: {
+        type: 'object',
+        properties: {
+          success: {
+            type: 'boolean',
+            example: true,
+          },
+          data: {
+            type: 'object',
+            properties: {
+              defaultLanguage: {
+                type: 'string',
+                description: '默认语言代码',
+                example: 'zh-cn',
+              },
+              supportedLanguages: {
+                type: 'array',
+                items: {
+                  $ref: '#/components/schemas/LanguageMetadata',
+                },
+                description: '支持的语言列表',
+              },
+            },
+          },
+        },
+      },
     },
     responses: {
       // 400 验证错误
@@ -660,6 +863,23 @@ const swaggerDefinition = {
           },
         },
       },
+      // 401 未授权
+      Unauthorized: {
+        description: '未授权访问',
+        content: {
+          'application/json': {
+            schema: {
+              $ref: '#/components/schemas/ErrorResponse',
+            },
+            example: {
+              error: {
+                code: 'UNAUTHORIZED',
+                message: '未授权访问',
+              },
+            },
+          },
+        },
+      },
     },
     parameters: {
       // 域名路径参数
@@ -713,6 +933,29 @@ const swaggerDefinition = {
           default: 20,
         },
         example: 20,
+      },
+      // 语言代码路径参数
+      LanguageCodeParam: {
+        name: 'languageCode',
+        in: 'path',
+        required: true,
+        description: '语言代码（zh-cn, en-us, ja-jp）',
+        schema: {
+          type: 'string',
+          enum: ['zh-cn', 'en-us', 'ja-jp'],
+        },
+        example: 'zh-cn',
+      },
+      // Accept-Language 请求头
+      AcceptLanguageHeader: {
+        name: 'Accept-Language',
+        in: 'header',
+        required: false,
+        description: '首选语言（支持 BCP 47 格式和权重）',
+        schema: {
+          type: 'string',
+        },
+        example: 'zh-CN,en-US;q=0.9,ja-JP;q=0.8',
       },
     },
   },
